@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScraperSA</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --yellow: #f5c800;
+      --yellow-dark: #d4ac00;
+      --yellow-light: #fffbe6;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --green: #16a34a;
+      --red: #dc2626;
+      --blue: #2563eb;
+      --radius: 10px;
+      --shadow: 0 2px 16px rgba(0,0,0,.09);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-900);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--yellow);
+      padding: 0 32px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    header svg { flex-shrink: 0; }
+    header h1 { font-size: 1.15rem; font-weight: 700; color: var(--gray-900); }
+    header span { font-size: .85rem; color: var(--gray-700); margin-left: 4px; }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      padding: 28px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ── Panel izquierdo ── */
+    .panel {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      height: fit-content;
+      position: sticky;
+      top: 24px;
+    }
+
+    .panel h2 {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .mode-tab {
+      border: 1.5px solid var(--gray-200);
+      background: var(--gray-50);
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: var(--gray-700);
+      cursor: pointer;
+      font-size: .82rem;
+      font-weight: 700;
+      transition: background .15s, border-color .15s;
+    }
+    .mode-tab.active {
+      background: var(--yellow-light);
+      border-color: var(--yellow-dark);
+      color: var(--gray-900);
+    }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: .95rem;
+      color: var(--gray-900);
+      transition: border-color .15s;
+      outline: none;
+    }
+    .field input:focus { border-color: var(--yellow-dark); }
+    .field input::placeholder { color: var(--gray-400); }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .check-row {
+      display: grid;
+      gap: 9px;
+      margin: 4px 0 16px;
+    }
+    .check-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gray-700);
+      font-size: .86rem;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+    }
+    .check-row input {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--yellow-dark);
+    }
+
+    .suggestions {
+      position: relative;
+    }
+    .suggestion-list {
+      display: none;
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0; right: 0;
+      background: #fff;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .suggestion-list.open { display: block; }
+    .suggestion-list li {
+      list-style: none;
+      padding: 9px 12px;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: background .1s;
+    }
+    .suggestion-list li:hover { background: var(--yellow-light); }
+
+    .btn-search {
+      width: 100%;
+      padding: 12px;
+      background: var(--yellow);
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-search:hover { background: var(--yellow-dark); }
+    .btn-search:active { transform: scale(.98); }
+    .btn-search:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Stats ── */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .stat {
+      background: var(--gray-50);
+      border-radius: 8px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .stat .val {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+    .stat .lbl {
+      font-size: .72rem;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    /* ── Panel derecho ── */
+    .main { min-height: 400px; }
+
+    /* ── Estado vacío ── */
+    .empty-state {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 80px 24px;
+      text-align: center;
+      color: var(--gray-400);
+    }
+    .empty-state svg { opacity: .35; }
+    .empty-state p { font-size: 1rem; font-weight: 500; }
+    .empty-state small { font-size: .85rem; }
+
+    /* ── Log de progreso ── */
+    .log-card {
+      background: #1a1a2e;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .log-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .log-header span {
+      font-size: .8rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid #a5b4fc44;
+      border-top-color: #a5b4fc;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner.hidden { display: none; }
+
+    #log-output {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: .8rem;
+      color: #c8d6e5;
+      max-height: 180px;
+      overflow-y: auto;
+      line-height: 1.7;
+    }
+    #log-output .line { display: block; }
+    #log-output .line.done { color: #4ade80; }
+    #log-output .line.err  { color: #f87171; }
+
+    /* ── Barra de resultados ── */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .results-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .results-title small {
+      font-weight: 400;
+      color: var(--gray-500);
+      font-size: .85rem;
+      margin-left: 6px;
+    }
+    .download-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-dl {
+      padding: 7px 14px;
+      border-radius: 7px;
+      font-size: .83rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      transition: background .12s;
+    }
+    .btn-dl.json { border-color: #f59e0b; color: #b45309; background: #fffbeb; }
+    .btn-dl.json:hover { background: #fef3c7; }
+    .btn-dl.csv  { border-color: var(--green); color: var(--green); background: #f0fdf4; }
+    .btn-dl.csv:hover  { background: #dcfce7; }
+    .best-price {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 5px;
+      padding: 2px 7px;
+      background: #dcfce7;
+      color: #15803d;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .status-pill {
+      display: inline-flex;
+      border-radius: 5px;
+      padding: 2px 7px;
+      background: var(--gray-100);
+      color: var(--gray-500);
+      font-size: .78rem;
+      font-weight: 600;
+    }
+
+    /* ── Search bar en resultados ── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .filter-bar input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: .9rem;
+      outline: none;
+    }
+    .filter-bar input:focus { border-color: var(--yellow-dark); }
+
+    /* ── Tabla ── */
+    .table-wrap {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+    thead tr { background: var(--yellow-light); }
+    th {
+      padding: 11px 14px;
+      text-align: left;
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--gray-700);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { background: #fff3b0; }
+    th .sort-icon { margin-left: 4px; opacity: .4; font-style: normal; }
+    th.sorted .sort-icon { opacity: 1; }
+
+    tbody tr {
+      border-top: 1px solid var(--gray-100);
+      transition: background .1s;
+    }
+    tbody tr:hover { background: var(--gray-50); }
+    td { padding: 11px 14px; vertical-align: top; }
+
+    .td-name { font-weight: 600; color: var(--gray-900); }
+    .td-phone { white-space: nowrap; color: var(--gray-700); }
+    .td-wa { white-space: nowrap; }
+    .wa-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #dcfce7;
+      color: #15803d;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: .78rem;
+      font-weight: 600;
+    }
+    .td-address { color: var(--gray-500); font-size: .82rem; max-width: 220px; }
+    .td-web a {
+      color: var(--blue);
+      text-decoration: none;
+      font-size: .82rem;
+      word-break: break-all;
+    }
+    .td-web a:hover { text-decoration: underline; }
+
+    .no-rows {
+      text-align: center;
+      color: var(--gray-400);
+      padding: 40px !important;
+      font-size: .9rem;
+    }
+
+    /* ── Utilidades ── */
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; padding: 16px; }
+      .panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <circle cx="14" cy="14" r="14" fill="#1a1a2e"/>
+    <path d="M8 14C8 10.686 10.686 8 14 8s6 2.686 6 6-2.686 6-6 6" stroke="#f5c800" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="14" cy="14" r="2" fill="#f5c800"/>
+  </svg>
+  <h1>ScrappSA <span>— Directorio y precios</span></h1>
+</header>
+
+<div class="layout">
+
+  <!-- ── Panel izquierdo ── -->
+  <aside class="panel">
+    <h2>Tipo de búsqueda</h2>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="mode-directory" type="button">Directorio</button>
+      <button class="mode-tab" id="mode-prices" type="button">Precios</button>
+      <button class="mode-tab" id="mode-maps" type="button">Maps</button>
+    </div>
+
+    <div id="directory-form">
+      <h2>Parámetros de búsqueda</h2>
+
+      <div class="field">
+      <label>¿Qué buscas?</label>
+      <div class="suggestions">
+        <input id="inp-query" type="text" placeholder="ej. dermatólogos, abogados…"
+               autocomplete="off" />
+        <ul class="suggestion-list" id="sug-query">
+          <li data-val="contadores">Contadores</li>
+          <li data-val="dermatólogos">Dermatólogos</li>
+          <li data-val="dentistas">Dentistas</li>
+          <li data-val="abogados">Abogados</li>
+          <li data-val="arquitectos">Arquitectos</li>
+          <li data-val="psicólogos">Psicólogos</li>
+          <li data-val="veterinarios">Veterinarios</li>
+          <li data-val="electricistas">Electricistas</li>
+          <li data-val="plomeros">Plomeros</li>
+          <li data-val="restaurantes">Restaurantes</li>
+          <li data-val="hoteles">Hoteles</li>
+          <li data-val="farmacias">Farmacias</li>
+        </ul>
+      </div>
+      </div>
+
+      <div class="field">
+      <label>Ciudad / Zona</label>
+      <div class="suggestions">
+        <input id="inp-location" type="text" placeholder="ej. Ciudad de Mexico"
+               autocomplete="off" />
+        <ul class="suggestion-list" id="sug-location">
+          <li data-val="Ciudad de Mexico">Ciudad de México</li>
+          <li data-val="Guadalajara">Guadalajara</li>
+          <li data-val="Monterrey">Monterrey</li>
+          <li data-val="Puebla">Puebla</li>
+          <li data-val="Tijuana">Tijuana</li>
+          <li data-val="León">León</li>
+          <li data-val="Juárez">Juárez</li>
+          <li data-val="Mérida">Mérida</li>
+          <li data-val="Cancún">Cancún</li>
+          <li data-val="Querétaro">Querétaro</li>
+          <li data-val="San Luis Potosí">San Luis Potosí</li>
+          <li data-val="Aguascalientes">Aguascalientes</li>
+        </ul>
+      </div>
+      </div>
+    </div>
+
+    <div id="prices-form" class="hidden">
+      <h2>Comparador de precios</h2>
+
+      <div class="field">
+        <label>Producto</label>
+        <input id="inp-product" type="text" placeholder="ej. paracetamol 500 mg, ensure vainilla..." autocomplete="off" />
+      </div>
+    </div>
+
+    <div id="maps-form" class="hidden">
+      <h2>Google Maps</h2>
+
+      <div class="field">
+        <label>Negocio / Lugar</label>
+        <input id="inp-maps-query" type="text" placeholder="ej. farmacias, restaurantes, clínicas..." autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label>Ciudad / Zona</label>
+        <input id="inp-maps-location" type="text" placeholder="ej. Roma Norte, CDMX" autocomplete="off" />
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Radio km</label>
+          <input id="inp-maps-radius" type="number" min="1" max="50" step="1" placeholder="10" />
+        </div>
+        <div class="field">
+          <label>Límite</label>
+          <input id="inp-maps-limit" type="number" min="5" max="200" step="5" value="50" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Calificación mínima</label>
+        <input id="inp-maps-rating" type="number" min="1" max="5" step=".1" placeholder="ej. 4.2" />
+      </div>
+
+      <div class="check-row">
+        <label><input id="inp-maps-browser" type="checkbox" checked /> Scroll real en Google Maps</label>
+        <label><input id="inp-maps-enrich" type="checkbox" /> Abrir detalle de cada lugar</label>
+        <label><input id="inp-maps-linkedin" type="checkbox" /> Buscar CEO / dueño en LinkedIn</label>
+        <label><input id="inp-maps-open" type="checkbox" /> Abierto ahora</label>
+        <label><input id="inp-maps-phone" type="checkbox" /> Solo con teléfono</label>
+        <label><input id="inp-maps-web" type="checkbox" /> Solo con sitio web</label>
+      </div>
+    </div>
+
+    <button class="btn-search" id="btn-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      Buscar
+    </button>
+
+    <!-- Stats -->
+    <div class="stats hidden" id="stats-box">
+      <div class="stat">
+        <div class="val" id="st-total">0</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="st-tel">0</div>
+        <div class="lbl" id="st-lbl-2">Con teléfono</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="st-web">0</div>
+        <div class="lbl" id="st-lbl-3">Con sitio web</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="st-wa">0</div>
+        <div class="lbl" id="st-lbl-4">Con WhatsApp</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Área principal ── -->
+  <main class="main">
+
+    <!-- Estado inicial -->
+    <div class="empty-state" id="empty-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <p>Ingresa un oficio y ciudad para comenzar</p>
+      <small id="empty-help">Los resultados aparecerán aquí en tiempo real</small>
+    </div>
+
+    <!-- Log de progreso -->
+    <div class="log-card hidden" id="log-card">
+      <div class="log-header">
+        <div class="spinner" id="log-spinner"></div>
+        <span id="log-title">Extrayendo datos…</span>
+      </div>
+      <div id="log-output"></div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="hidden" id="results-section">
+      <div class="results-header">
+        <div class="results-title">
+          Resultados
+          <small id="results-subtitle"></small>
+        </div>
+        <div class="download-btns">
+          <a class="btn-dl json hidden" id="dl-json" href="#">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            JSON
+          </a>
+          <a class="btn-dl csv hidden" id="dl-csv" href="#">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            CSV / Excel
+          </a>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <input id="filter-input" type="text" placeholder="Filtrar resultados…" />
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead id="results-head">
+            <tr>
+              <th data-col="nombre">Nombre <i class="sort-icon">↕</i></th>
+              <th data-col="telefono">Teléfono <i class="sort-icon">↕</i></th>
+              <th data-col="whatsapp">WhatsApp <i class="sort-icon">↕</i></th>
+              <th data-col="direccion">Dirección <i class="sort-icon">↕</i></th>
+              <th data-col="sitio_web">Sitio web <i class="sort-icon">↕</i></th>
+            </tr>
+          </thead>
+          <tbody id="results-body">
+            <tr><td class="no-rows" colspan="5">Sin resultados aún</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── Suggestions ────────────────────────────────────────────
+function initSuggestions(inputId, listId) {
+  const inp = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  const items = list.querySelectorAll('li');
+
+  inp.addEventListener('focus', () => {
+    filterList('');
+    list.classList.add('open');
+  });
+  inp.addEventListener('input', () => filterList(inp.value));
+  document.addEventListener('click', (e) => {
+    if (!inp.contains(e.target) && !list.contains(e.target))
+      list.classList.remove('open');
+  });
+  items.forEach(li => {
+    li.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      inp.value = li.dataset.val;
+      list.classList.remove('open');
+    });
+  });
+
+  function filterList(q) {
+    const lq = q.toLowerCase();
+    let visible = 0;
+    items.forEach(li => {
+      const match = li.textContent.toLowerCase().includes(lq) ||
+                    li.dataset.val.toLowerCase().includes(lq);
+      li.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    list.classList.toggle('open', visible > 0 && document.activeElement === inp);
+  }
+}
+initSuggestions('inp-query', 'sug-query');
+initSuggestions('inp-location', 'sug-location');
+
+// ── Estado global ───────────────────────────────────────────
+let allResults = [];
+let currentJobId = null;
+let sortCol = null;
+let sortAsc = true;
+let currentMode = 'directory';
+
+const $ = id => document.getElementById(id);
+
+// ── Modos ───────────────────────────────────────────────────
+$('mode-directory').addEventListener('click', () => setMode('directory'));
+$('mode-prices').addEventListener('click', () => setMode('prices'));
+$('mode-maps').addEventListener('click', () => setMode('maps'));
+
+function setMode(mode) {
+  currentMode = mode;
+  sortCol = null;
+  sortAsc = true;
+  allResults = [];
+
+  $('mode-directory').classList.toggle('active', mode === 'directory');
+  $('mode-prices').classList.toggle('active', mode === 'prices');
+  $('mode-maps').classList.toggle('active', mode === 'maps');
+  $('directory-form').classList.toggle('hidden', mode !== 'directory');
+  $('prices-form').classList.toggle('hidden', mode !== 'prices');
+  $('maps-form').classList.toggle('hidden', mode !== 'maps');
+  $('stats-box').classList.add('hidden');
+  $('results-section').classList.add('hidden');
+  $('log-card').classList.add('hidden');
+  $('empty-state').classList.remove('hidden');
+
+  $('empty-state').querySelector('p').textContent =
+    mode === 'prices'
+      ? 'Ingresa un producto para comparar precios'
+      : mode === 'maps'
+      ? 'Busca lugares y negocios en Google Maps'
+      : 'Ingresa un oficio y ciudad para comenzar';
+  $('empty-help').textContent =
+    mode === 'prices'
+      ? 'Se buscará en farmacias y supermercados principales'
+      : mode === 'maps'
+      ? 'Personaliza zona, radio, calificación y datos requeridos'
+      : 'Los resultados aparecerán aquí en tiempo real';
+  $('filter-input').value = '';
+  renderHeader();
+}
+
+// ── Botón Buscar ────────────────────────────────────────────
+$('btn-search').addEventListener('click', startSearch);
+$('inp-product').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
+$('inp-maps-query').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
+$('inp-maps-location').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
+[$('inp-query'), $('inp-location')].forEach(inp =>
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); })
+);
+
+async function startSearch() {
+  const isPrices = currentMode === 'prices';
+  const isMaps = currentMode === 'maps';
+  const query = isPrices
+    ? $('inp-product').value.trim()
+    : isMaps
+    ? $('inp-maps-query').value.trim()
+    : $('inp-query').value.trim();
+  const location = isMaps ? $('inp-maps-location').value.trim() : $('inp-location').value.trim();
+
+  if (isPrices && !query) {
+    alert('Por favor ingresa el producto a comparar.');
+    return;
+  }
+  if (isMaps && (!query || !location)) {
+    alert('Por favor ingresa qué negocio buscas y la ciudad o zona.');
+    return;
+  }
+  if (!isPrices && !isMaps && (!query || !location)) {
+    alert('Por favor ingresa qué buscas y la ciudad.');
+    return;
+  }
+
+  // Reset UI
+  allResults = [];
+  sortCol = null;
+  sortAsc = true;
+  $('btn-search').disabled = true;
+  $('empty-state').classList.add('hidden');
+  $('results-section').classList.add('hidden');
+  $('stats-box').classList.add('hidden');
+  $('dl-json').classList.add('hidden');
+  $('dl-csv').classList.add('hidden');
+  $('log-output').innerHTML = '';
+  $('log-spinner').classList.remove('hidden');
+  $('log-title').textContent = isPrices
+    ? `Comparando "${query}"…`
+    : isMaps
+    ? `Buscando "${query}" en Google Maps…`
+    : `Buscando "${query}" en ${location}…`;
+  $('log-card').classList.remove('hidden');
+  renderHeader();
+
+  // Iniciar job
+  const endpoint = isPrices ? '/api/compare' : isMaps ? '/api/maps' : '/api/scrape';
+  const payloadBody = isPrices
+    ? { query }
+    : isMaps
+    ? { query, location, filters: getMapsFilters() }
+    : { query, location };
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payloadBody),
+  });
+  const payload = await res.json();
+  if (!res.ok) {
+    alert(payload.error || 'No se pudo iniciar la búsqueda.');
+    $('btn-search').disabled = false;
+    return;
+  }
+  const { job_id } = payload;
+  currentJobId = job_id;
+
+  // Escuchar progreso via SSE
+  const evtSource = new EventSource(`/api/progress/${job_id}`);
+  evtSource.onmessage = (e) => {
+    const raw = e.data;
+    if (raw === 'ping') return;
+
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { return; }
+
+    // Objeto de estado final
+    if (parsed && typeof parsed === 'object' && parsed.__status__) {
+      evtSource.close();
+      onJobDone(job_id, parsed.__count__);
+      return;
+    }
+
+    const msg = typeof parsed === 'string' ? parsed : String(parsed);
+
+    // Mensaje DONE especial del scraper
+    if (msg.startsWith('DONE:')) {
+      return;
+    }
+
+    appendLog(msg, msg.startsWith('ERROR:') ? 'err' : '');
+  };
+  evtSource.onerror = () => { evtSource.close(); onJobDone(job_id, 0); };
+}
+
+function appendLog(msg, cls = '') {
+  const out = $('log-output');
+  const line = document.createElement('span');
+  line.className = 'line' + (cls ? ' ' + cls : '');
+  line.textContent = msg;
+  out.appendChild(line);
+  out.appendChild(document.createTextNode('\n'));
+  out.scrollTop = out.scrollHeight;
+}
+
+async function onJobDone(job_id, count) {
+  $('log-spinner').classList.add('hidden');
+  $('log-title').textContent = currentMode === 'prices'
+    ? `Listo — ${count} tiendas con precio encontrado`
+    : currentMode === 'maps'
+    ? `Listo — ${count} lugares encontrados`
+    : `Listo — ${count} resultados únicos encontrados`;
+  appendLog(`✓ Completado: ${count} registros`, 'done');
+
+  // Obtener resultados
+  const res = await fetch(`/api/results/${job_id}`);
+  const data = await res.json();
+  allResults = data.results || [];
+  currentMode = ['prices', 'maps'].includes(data.kind) ? data.kind : currentMode;
+
+  // Links de descarga
+  $('dl-json').href = `/api/download/${job_id}/json`;
+  $('dl-csv').href  = `/api/download/${job_id}/csv`;
+  $('dl-json').classList.remove('hidden');
+  $('dl-csv').classList.remove('hidden');
+
+  updateStats();
+  renderTable(allResults);
+  $('results-section').classList.remove('hidden');
+  $('btn-search').disabled = false;
+}
+
+// ── Stats ────────────────────────────────────────────────────
+function updateStats() {
+  const r = allResults;
+  $('st-total').textContent = r.length;
+  if (currentMode === 'prices') {
+    const found = r.filter(x => x.precio !== null && x.precio !== undefined);
+    const best = found.length ? Math.min(...found.map(x => Number(x.precio))) : 0;
+    $('st-tel').textContent = found.length;
+    $('st-web').textContent = found.length ? `$${best.toFixed(2)}` : '—';
+    $('st-wa').textContent = r.filter(x => x.fuente === 'error' || x.fuente === 'bloqueado').length;
+    $('st-lbl-2').textContent = 'Con precio';
+    $('st-lbl-3').textContent = 'Mejor precio';
+    $('st-lbl-4').textContent = 'Sin acceso';
+  } else if (currentMode === 'maps') {
+    const ratings = r.map(x => x.calificacion).filter(x => x !== null && x !== undefined).map(Number);
+    const avg = ratings.length
+      ? (ratings.reduce((sum, val) => sum + val, 0) / ratings.length).toFixed(1)
+      : '—';
+    $('st-tel').textContent = r.filter(x => x.telefono).length;
+    $('st-web').textContent = avg;
+    $('st-wa').textContent = r.filter(x => x.sitio_web).length;
+    $('st-lbl-2').textContent = 'Con teléfono';
+    $('st-lbl-3').textContent = 'Rating prom.';
+    $('st-lbl-4').textContent = 'Con sitio web';
+  } else {
+    $('st-tel').textContent   = r.filter(x => x.telefono).length;
+    $('st-web').textContent   = r.filter(x => x.sitio_web).length;
+    $('st-wa').textContent    = r.filter(x => x.whatsapp).length;
+    $('st-lbl-2').textContent = 'Con teléfono';
+    $('st-lbl-3').textContent = 'Con sitio web';
+    $('st-lbl-4').textContent = 'Con WhatsApp';
+  }
+  $('stats-box').classList.remove('hidden');
+}
+
+// ── Tabla ────────────────────────────────────────────────────
+function renderHeader() {
+  const head = $('results-head');
+  if (currentMode === 'prices') {
+    head.innerHTML = `
+      <tr>
+        <th data-col="tienda">Tienda <i class="sort-icon">↕</i></th>
+        <th data-col="producto">Producto encontrado <i class="sort-icon">↕</i></th>
+        <th data-col="precio">Precio <i class="sort-icon">↕</i></th>
+        <th data-col="estado">Estado <i class="sort-icon">↕</i></th>
+        <th data-col="url">URL <i class="sort-icon">↕</i></th>
+      </tr>
+    `;
+    $('filter-input').placeholder = 'Filtrar por tienda, producto, precio o estado…';
+  } else if (currentMode === 'maps') {
+    head.innerHTML = `
+      <tr>
+        <th data-col="nombre">Nombre <i class="sort-icon">↕</i></th>
+        <th data-col="calificacion">Rating <i class="sort-icon">↕</i></th>
+        <th data-col="telefono">Teléfono <i class="sort-icon">↕</i></th>
+        <th data-col="lider_nombre">Líder <i class="sort-icon">↕</i></th>
+        <th data-col="lider_cargo">Cargo <i class="sort-icon">↕</i></th>
+        <th data-col="linkedin_url">LinkedIn <i class="sort-icon">↕</i></th>
+        <th data-col="google_maps_url">Google Maps <i class="sort-icon">↕</i></th>
+      </tr>
+    `;
+    $('filter-input').placeholder = 'Filtrar por nombre, teléfono, rating o estado…';
+  } else {
+    head.innerHTML = `
+      <tr>
+        <th data-col="nombre">Nombre <i class="sort-icon">↕</i></th>
+        <th data-col="telefono">Teléfono <i class="sort-icon">↕</i></th>
+        <th data-col="whatsapp">WhatsApp <i class="sort-icon">↕</i></th>
+        <th data-col="direccion">Dirección <i class="sort-icon">↕</i></th>
+        <th data-col="sitio_web">Sitio web <i class="sort-icon">↕</i></th>
+      </tr>
+    `;
+    $('filter-input').placeholder = 'Filtrar por nombre, dirección, teléfono…';
+  }
+  bindSortHeaders();
+}
+
+function renderTable(rows) {
+  const q = $('filter-input').value.toLowerCase();
+  const filtered = q
+    ? rows.filter(r =>
+        Object.values(r).some(v => String(v).toLowerCase().includes(q))
+      )
+    : rows;
+
+  $('results-subtitle').textContent =
+    filtered.length === rows.length
+      ? `${rows.length} registros`
+      : `${filtered.length} de ${rows.length} registros`;
+
+  const tbody = $('results-body');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td class="no-rows" colspan="5">Sin resultados para este filtro</td></tr>';
+    return;
+  }
+
+  if (currentMode === 'prices') {
+    const foundPrices = filtered
+      .map(r => r.precio)
+      .filter(v => v !== null && v !== undefined)
+      .map(Number);
+    const bestPrice = foundPrices.length ? Math.min(...foundPrices) : null;
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td class="td-name">${esc(r.tienda)}</td>
+        <td>${esc(r.producto || '—')}</td>
+        <td class="td-phone">${renderPrice(r, bestPrice)}</td>
+        <td>${r.estado ? `<span class="status-pill">${esc(r.estado)}</span>` : ''}</td>
+        <td class="td-web">${r.url
+          ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${shortUrl(r.url)}</a>`
+          : ''}</td>
+      </tr>
+    `).join('');
+    return;
+  }
+
+  if (currentMode === 'maps') {
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td class="td-name">${esc(r.nombre || '—')}</td>
+        <td class="td-phone">${r.calificacion !== null && r.calificacion !== undefined ? esc(r.calificacion) : '—'}</td>
+        <td class="td-phone">${esc(r.telefono)}</td>
+        <td>${esc(r.lider_nombre || '—')}</td>
+        <td>${esc(r.lider_cargo || r.lider_confianza || '—')}</td>
+        <td class="td-web">${r.linkedin_url
+          ? `<a href="${esc(r.linkedin_url)}" target="_blank" rel="noopener">LinkedIn</a>`
+          : '—'}</td>
+        <td class="td-web">${r.google_maps_url
+          ? `<a href="${esc(r.google_maps_url)}" target="_blank" rel="noopener">Abrir</a>`
+          : `<span class="status-pill">${esc(r.estado || 'Sin enlace')}</span>`}</td>
+      </tr>
+    `).join('');
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td class="td-name">${esc(r.nombre)}</td>
+      <td class="td-phone">${esc(r.telefono)}</td>
+      <td class="td-wa">${r.whatsapp
+        ? `<span class="wa-badge">
+             <svg width="11" height="11" viewBox="0 0 24 24" fill="#16a34a"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+             ${esc(r.whatsapp)}
+           </span>`
+        : ''}</td>
+      <td class="td-address">${esc(r.direccion)}</td>
+      <td class="td-web">${r.sitio_web
+        ? `<a href="${esc(r.sitio_web)}" target="_blank" rel="noopener">
+             ${shortUrl(r.sitio_web)}
+           </a>`
+        : ''}</td>
+    </tr>
+  `).join('');
+}
+
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function shortUrl(url) {
+  try { return new URL(url).hostname; } catch { return url.slice(0, 30); }
+}
+
+// ── Filtro en tiempo real ────────────────────────────────────
+$('filter-input').addEventListener('input', () => renderTable(sortedResults()));
+
+// ── Ordenamiento ─────────────────────────────────────────────
+function bindSortHeaders() {
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) {
+      sortAsc = !sortAsc;
+    } else {
+      sortCol = col; sortAsc = true;
+    }
+    document.querySelectorAll('th').forEach(t => t.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.sort-icon').textContent = sortAsc ? '↑' : '↓';
+    renderTable(sortedResults());
+    });
+  });
+}
+
+function sortedResults() {
+  if (!sortCol) return allResults;
+  return [...allResults].sort((a, b) => {
+    if (['precio', 'calificacion', 'resenas'].includes(sortCol)) {
+      const va = a[sortCol] === null || a[sortCol] === undefined ? Number.POSITIVE_INFINITY : Number(a[sortCol]);
+      const vb = b[sortCol] === null || b[sortCol] === undefined ? Number.POSITIVE_INFINITY : Number(b[sortCol]);
+      return sortAsc ? va - vb : vb - va;
+    }
+    const va = String(a[sortCol] || '').toLowerCase();
+    const vb = String(b[sortCol] || '').toLowerCase();
+    return sortAsc ? va.localeCompare(vb, 'es') : vb.localeCompare(va, 'es');
+  });
+}
+
+function renderPrice(row, bestPrice) {
+  if (row.precio === null || row.precio === undefined) return '—';
+  const price = Number(row.precio);
+  const text = row.precio_texto || `$${price.toFixed(2)}`;
+  if (bestPrice !== null && price === bestPrice) {
+    return `<span class="best-price">${esc(text)}</span>`;
+  }
+  return esc(text);
+}
+
+function getMapsFilters() {
+  return {
+    radius_km: $('inp-maps-radius').value.trim(),
+    max_results: $('inp-maps-limit').value.trim() || '25',
+    min_rating: $('inp-maps-rating').value.trim(),
+    open_now: $('inp-maps-open').checked,
+    require_phone: $('inp-maps-phone').checked,
+    require_website: $('inp-maps-web').checked,
+    use_browser: $('inp-maps-browser').checked,
+    enrich_details: $('inp-maps-enrich').checked || $('inp-maps-phone').checked || $('inp-maps-web').checked,
+    enrich_linkedin: $('inp-maps-linkedin').checked,
+  };
+}
+
+renderHeader();
+</script>
+</body>
+</html>

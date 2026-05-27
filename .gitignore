@@ -1,0 +1,48 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Flask local files
+instance/
+.webassets-cache/
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+.DS_Store
+
+# Playwright/browser local artifacts
+playwright-report/
+test-results/
+.cache/
+ms-playwright/
+
+# Generated scraper exports
+contadores_cdmx.csv
+contadores_cdmx.json
+exports/
+downloads/
