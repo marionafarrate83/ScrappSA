@@ -5,19 +5,107 @@ import threading
 import queue
 import io
 import os
-from flask import Flask, request, Response, render_template, jsonify, stream_with_context
+import functools
+from datetime import datetime
+from flask import (
+    Flask, request, Response, render_template, jsonify,
+    stream_with_context, session, redirect, url_for,
+)
+from pymongo import MongoClient, DESCENDING
+from werkzeug.security import check_password_hash
 
 import scraper as sc
 import price_scraper as ps
 import maps_scraper as ms
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'cambia-esto-en-produccion')
 
-# job_id -> { "status": "running"|"done"|"error", "results": [...], "log": queue }
+# ── MongoDB ─────────────────────────────────────────────────
+_mongo = MongoClient(os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/'))
+_db = _mongo['scrappsa']
+users_col = _db['users']
+audit_col = _db['audit_logs']
+
+try:
+    users_col.create_index('username', unique=True)
+    audit_col.create_index([('timestamp', DESCENDING)])
+    audit_col.create_index('user')
+except Exception:
+    pass
+
+# ── Jobs ─────────────────────────────────────────────────────
 jobs: dict = {}
 jobs_lock = threading.Lock()
 
 
+# ── Auth helpers ─────────────────────────────────────────────
+def login_required(f):
+    @functools.wraps(f)
+    def _wrap(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.path.startswith('/api/') or 'text/event-stream' in request.headers.get('Accept', ''):
+                return jsonify({'error': 'No autorizado'}), 401
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return _wrap
+
+
+def log_audit(action, details=None):
+    try:
+        audit_col.insert_one({
+            'user': session.get('username'),
+            'user_id': session.get('user_id'),
+            'action': action,
+            'details': details or {},
+            'ip': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent', ''),
+            'timestamp': datetime.utcnow(),
+        })
+    except Exception:
+        pass
+
+
+# ── Auth routes ──────────────────────────────────────────────
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    error = None
+    if request.method == 'POST':
+        username = (request.form.get('username') or '').strip().lower()
+        password = request.form.get('password') or ''
+        user = users_col.find_one({'username': username, 'is_active': True})
+        if user and check_password_hash(user['password_hash'], password):
+            session['user_id'] = str(user['_id'])
+            session['username'] = user['username']
+            log_audit('login')
+            return redirect(url_for('index'))
+        try:
+            audit_col.insert_one({
+                'user': username,
+                'user_id': None,
+                'action': 'login_failed',
+                'details': {},
+                'ip': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent', ''),
+                'timestamp': datetime.utcnow(),
+            })
+        except Exception:
+            pass
+        error = 'Usuario o contraseña incorrectos'
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    if 'user_id' in session:
+        log_audit('logout')
+        session.clear()
+    return redirect(url_for('login'))
+
+
+# ── Job runners ──────────────────────────────────────────────
 def run_scrape_job(job_id: str, query: str, location: str):
     job = jobs[job_id]
     log_q: queue.Queue = job["log"]
@@ -36,7 +124,7 @@ def run_scrape_job(job_id: str, query: str, location: str):
             jobs[job_id]["error"] = str(e)
         log_q.put(f"ERROR:{e}")
     finally:
-        log_q.put(None)  # sentinel
+        log_q.put(None)
 
 
 def run_price_job(job_id: str, query: str):
@@ -57,7 +145,7 @@ def run_price_job(job_id: str, query: str):
             jobs[job_id]["error"] = str(e)
         log_q.put(f"ERROR:{e}")
     finally:
-        log_q.put(None)  # sentinel
+        log_q.put(None)
 
 
 def run_maps_job(job_id: str, query: str, location: str, filters: dict):
@@ -78,15 +166,18 @@ def run_maps_job(job_id: str, query: str, location: str, filters: dict):
             jobs[job_id]["error"] = str(e)
         log_q.put(f"ERROR:{e}")
     finally:
-        log_q.put(None)  # sentinel
+        log_q.put(None)
 
 
+# ── Routes ───────────────────────────────────────────────────
 @app.route("/")
+@login_required
 def index():
-    return render_template("index.html")
+    return render_template("index.html", username=session.get('username'))
 
 
 @app.route("/api/scrape", methods=["POST"])
+@login_required
 def start_scrape():
     data = request.get_json()
     query = (data.get("query") or "").strip()
@@ -105,6 +196,8 @@ def start_scrape():
             "log": queue.Queue(),
         }
 
+    log_audit('search', {'mode': 'directory', 'query': query, 'location': location})
+
     thread = threading.Thread(
         target=run_scrape_job, args=(job_id, query, location), daemon=True
     )
@@ -113,6 +206,7 @@ def start_scrape():
 
 
 @app.route("/api/maps", methods=["POST"])
+@login_required
 def start_maps():
     data = request.get_json()
     query = (data.get("query") or "").strip()
@@ -134,6 +228,8 @@ def start_maps():
             "log": queue.Queue(),
         }
 
+    log_audit('search', {'mode': 'maps', 'query': query, 'location': location, 'filters': filters})
+
     thread = threading.Thread(
         target=run_maps_job, args=(job_id, query, location, filters), daemon=True
     )
@@ -142,6 +238,7 @@ def start_maps():
 
 
 @app.route("/api/compare", methods=["POST"])
+@login_required
 def start_compare():
     data = request.get_json()
     query = (data.get("query") or "").strip()
@@ -160,12 +257,15 @@ def start_compare():
             "log": queue.Queue(),
         }
 
+    log_audit('search', {'mode': 'prices', 'query': query})
+
     thread = threading.Thread(target=run_price_job, args=(job_id, query), daemon=True)
     thread.start()
     return jsonify({"job_id": job_id})
 
 
 @app.route("/api/progress/<job_id>")
+@login_required
 def progress_stream(job_id: str):
     if job_id not in jobs:
         return jsonify({"error": "Job no encontrado"}), 404
@@ -183,7 +283,6 @@ def progress_stream(job_id: str):
                 break
             yield f"data: {json.dumps(msg)}\n\n"
 
-        # Send final status
         status = jobs[job_id].get("status", "done")
         results = jobs[job_id].get("results", [])
         if jobs[job_id].get("kind") == "prices":
@@ -203,6 +302,7 @@ def progress_stream(job_id: str):
 
 
 @app.route("/api/results/<job_id>")
+@login_required
 def get_results(job_id: str):
     if job_id not in jobs:
         return jsonify({"error": "Job no encontrado"}), 404
@@ -218,6 +318,7 @@ def get_results(job_id: str):
 
 
 @app.route("/api/download/<job_id>/<fmt>")
+@login_required
 def download(job_id: str, fmt: str):
     if job_id not in jobs:
         return jsonify({"error": "Job no encontrado"}), 404

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScrappSA — Iniciar sesión</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --yellow: #f5c800;
+      --yellow-dark: #d4ac00;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --red: #dc2626;
+      --radius: 10px;
+      --shadow: 0 2px 16px rgba(0,0,0,.09);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--gray-100);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--yellow);
+      padding: 0 32px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    header h1 { font-size: 1.15rem; font-weight: 700; color: var(--gray-900); }
+    header span { font-size: .85rem; color: var(--gray-700); margin-left: 4px; }
+
+    .login-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .login-card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .login-card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+    }
+
+    .login-card p {
+      font-size: .875rem;
+      color: var(--gray-500);
+      margin-bottom: 28px;
+    }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: .95rem;
+      color: var(--gray-900);
+      transition: border-color .15s;
+      outline: none;
+    }
+    .field input:focus { border-color: var(--yellow-dark); }
+
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--red);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .875rem;
+      margin-bottom: 18px;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: var(--yellow);
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background .15s, transform .1s;
+    }
+    .btn-login:hover { background: var(--yellow-dark); }
+    .btn-login:active { transform: scale(.98); }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <circle cx="14" cy="14" r="14" fill="#1a1a2e"/>
+    <path d="M8 14C8 10.686 10.686 8 14 8s6 2.686 6 6-2.686 6-6 6" stroke="#f5c800" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="14" cy="14" r="2" fill="#f5c800"/>
+  </svg>
+  <h1>ScrappSA <span>— Directorio y precios</span></h1>
+</header>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <h2>Iniciar sesión</h2>
+    <p>Ingresa tus credenciales para continuar</p>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/login">
+      <div class="field">
+        <label>Usuario</label>
+        <input type="text" name="username" autocomplete="username" required autofocus />
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" name="password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn-login">Entrar</button>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>

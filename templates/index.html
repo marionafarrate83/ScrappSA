@@ -45,6 +45,28 @@
     header svg { flex-shrink: 0; }
     header h1 { font-size: 1.15rem; font-weight: 700; color: var(--gray-900); }
     header span { font-size: .85rem; color: var(--gray-700); margin-left: 4px; }
+    .header-user {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-username {
+      font-size: .85rem;
+      color: var(--gray-700);
+      font-weight: 600;
+    }
+    .btn-logout {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      text-decoration: none;
+      padding: 5px 12px;
+      border: 1.5px solid var(--gray-700);
+      border-radius: 7px;
+      transition: background .12s;
+    }
+    .btn-logout:hover { background: rgba(0,0,0,.07); }
 
     /* ── Layout ── */
     .layout {
@@ -447,6 +469,10 @@
     <circle cx="14" cy="14" r="2" fill="#f5c800"/>
   </svg>
   <h1>ScrappSA <span>— Directorio y precios</span></h1>
+  <div class="header-user">
+    <span class="header-username">{{ username }}</span>
+    <a href="/logout" class="btn-logout">Cerrar sesión</a>
+  </div>
 </header>
 
 <div class="layout">
