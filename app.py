@@ -7,6 +7,9 @@ import io
 import os
 import functools
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 from flask import (
     Flask, request, Response, render_template, jsonify,
     stream_with_context, session, redirect, url_for,
@@ -347,7 +350,12 @@ def download(job_id: str, fmt: str):
                 "nombre", "categoria", "calificacion", "resenas", "telefono",
                 "direccion", "sitio_web", "google_maps_url", "latitud", "longitud",
                 "linkedin_url", "lider_nombre", "lider_cargo", "lider_fuente",
-                "lider_confianza", "estado"
+                "lider_confianza", "resumen_actividad", "estado"
+            ]
+            # opiniones_muestra es lista — convertir a texto para CSV
+            results = [
+                {**r, "opiniones_muestra": " | ".join(r.get("opiniones_muestra") or [])}
+                for r in results
             ]
         elif job.get("kind") == "prices":
             fields = ["tienda", "producto", "precio", "precio_texto", "url", "fuente", "estado"]

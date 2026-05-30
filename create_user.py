@@ -42,7 +42,7 @@ def main():
 
     col.insert_one({
         'username': username,
-        'password_hash': generate_password_hash(password),
+        'password_hash': generate_password_hash(password, method='pbkdf2:sha256'),
         'created_at': datetime.utcnow(),
         'is_active': True,
     })

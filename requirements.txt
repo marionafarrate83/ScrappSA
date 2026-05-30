@@ -1,3 +1,4 @@
+anthropic
 beautifulsoup4
 flask
 gunicorn
@@ -5,4 +6,5 @@ lxml
 playwright
 pymongo
 dnspython
+python-dotenv
 requests

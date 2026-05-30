@@ -436,6 +436,33 @@
       font-weight: 600;
     }
     .td-address { color: var(--gray-500); font-size: .82rem; max-width: 220px; }
+    .conf-badge {
+      display: inline-block;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 5px;
+      vertical-align: middle;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .conf-alta  { background: #dcfce7; color: #15803d; }
+    .conf-media { background: #fef9c3; color: #854d0e; }
+    .conf-baja  { background: #f3f4f6; color: #6b7280; }
+    .td-summary {
+      font-size: .82rem;
+      color: var(--gray-700);
+      max-width: 260px;
+    }
+    .td-summary span:not(.status-pill) {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      cursor: help;
+    }
     .td-web a {
       color: var(--blue);
       text-decoration: none;
@@ -580,6 +607,7 @@
         <label><input id="inp-maps-open" type="checkbox" /> Abierto ahora</label>
         <label><input id="inp-maps-phone" type="checkbox" /> Solo con teléfono</label>
         <label><input id="inp-maps-web" type="checkbox" /> Solo con sitio web</label>
+        <label><input id="inp-maps-reviews" type="checkbox" /> Resumir actividad con IA ✦</label>
       </div>
     </div>
 
@@ -955,6 +983,7 @@ function renderHeader() {
         <th data-col="nombre">Nombre <i class="sort-icon">↕</i></th>
         <th data-col="calificacion">Rating <i class="sort-icon">↕</i></th>
         <th data-col="telefono">Teléfono <i class="sort-icon">↕</i></th>
+        <th data-col="resumen_actividad">Actividad / Resumen IA <i class="sort-icon">↕</i></th>
         <th data-col="lider_nombre">Líder <i class="sort-icon">↕</i></th>
         <th data-col="lider_cargo">Cargo <i class="sort-icon">↕</i></th>
         <th data-col="linkedin_url">LinkedIn <i class="sort-icon">↕</i></th>
@@ -1022,8 +1051,11 @@ function renderTable(rows) {
         <td class="td-name">${esc(r.nombre || '—')}</td>
         <td class="td-phone">${r.calificacion !== null && r.calificacion !== undefined ? esc(r.calificacion) : '—'}</td>
         <td class="td-phone">${esc(r.telefono)}</td>
-        <td>${esc(r.lider_nombre || '—')}</td>
-        <td>${esc(r.lider_cargo || r.lider_confianza || '—')}</td>
+        <td class="td-summary">${r.resumen_actividad
+          ? `<span title="${esc(r.resumen_actividad)}">${esc(r.resumen_actividad)}</span>`
+          : '<span class="status-pill">—</span>'}</td>
+        <td>${renderLider(r)}</td>
+        <td>${esc(r.lider_cargo || '—')}</td>
         <td class="td-web">${r.linkedin_url
           ? `<a href="${esc(r.linkedin_url)}" target="_blank" rel="noopener">LinkedIn</a>`
           : '—'}</td>
@@ -1099,6 +1131,17 @@ function sortedResults() {
   });
 }
 
+function renderLider(r) {
+  const nombre = r.lider_nombre || '';
+  const conf = r.lider_confianza || '';
+  if (!nombre) return '—';
+  const badgeClass = conf === 'alta' ? 'conf-alta' : conf === 'media' ? 'conf-media' : conf === 'baja' ? 'conf-baja' : '';
+  const badge = badgeClass
+    ? `<span class="conf-badge ${badgeClass}">${esc(conf)}</span>`
+    : '';
+  return esc(nombre) + badge;
+}
+
 function renderPrice(row, bestPrice) {
   if (row.precio === null || row.precio === undefined) return '—';
   const price = Number(row.precio);
@@ -1120,6 +1163,7 @@ function getMapsFilters() {
     use_browser: $('inp-maps-browser').checked,
     enrich_details: $('inp-maps-enrich').checked || $('inp-maps-phone').checked || $('inp-maps-web').checked,
     enrich_linkedin: $('inp-maps-linkedin').checked,
+    enrich_reviews: $('inp-maps-reviews').checked,
   };
 }
 

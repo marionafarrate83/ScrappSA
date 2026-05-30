@@ -5,6 +5,7 @@ módulo extrae lo disponible en el HTML inicial y conserva el enlace al lugar.
 """
 import html
 import json
+import os
 import re
 import time
 from typing import Optional
@@ -14,6 +15,16 @@ import requests
 from bs4 import BeautifulSoup
 
 import linkedin_enricher as le
+
+# ── Claude AI para resumen de opiniones ─────────────────────
+_anthropic_client = None
+try:
+    import anthropic as _anthropic_mod
+    _api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if _api_key:
+        _anthropic_client = _anthropic_mod.Anthropic(api_key=_api_key)
+except Exception:
+    pass
 
 try:
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -59,6 +70,8 @@ def empty_lead_fields() -> dict:
 def with_lead_fields(item: dict) -> dict:
     for key, value in empty_lead_fields().items():
         item.setdefault(key, value)
+    item.setdefault('resumen_actividad', '')
+    item.setdefault('opiniones_muestra', [])
     return item
 
 
@@ -178,7 +191,71 @@ def extract_card_from_browser(card) -> Optional[dict]:
     }
 
 
-def enrich_browser_result(page, item: dict) -> dict:
+def extract_reviews_from_page(page, max_reviews: int = 8) -> list[str]:
+    reviews = []
+
+    # Scroll down to trigger review rendering
+    try:
+        page.evaluate("window.scrollTo(0, 600)")
+        page.wait_for_timeout(700)
+    except Exception:
+        pass
+
+    # Expand truncated reviews
+    for expand_selector in ["button.w8nwRe", "button[aria-label='Ver más']", "button[aria-label='See more']"]:
+        try:
+            btns = page.locator(expand_selector)
+            for i in range(min(btns.count(), max_reviews)):
+                try:
+                    btns.nth(i).click(timeout=300)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # Extract review texts — fallback across multiple Maps versions
+    for selector in [".wiI7pd", "span[jsname='bN97Pc']", ".rsqaWe", ".MyEned"]:
+        try:
+            locators = page.locator(selector)
+            count = locators.count()
+            for i in range(min(count, max_reviews)):
+                try:
+                    text = locators.nth(i).inner_text(timeout=400).strip()
+                    if len(text) > 20:
+                        reviews.append(text)
+                except Exception:
+                    pass
+            if reviews:
+                break
+        except Exception:
+            pass
+
+    return reviews[:max_reviews]
+
+
+def summarize_with_ai(business_name: str, reviews: list[str]) -> str:
+    if not _anthropic_client or not reviews:
+        return ""
+    reviews_text = "\n".join(f"- {r}" for r in reviews)
+    prompt = (
+        f'Analiza estas reseñas del negocio "{business_name}" y escribe un resumen '
+        f"breve (máximo 2 oraciones) que describa: qué ofrece o hace este negocio "
+        f"(productos, servicios, especialidad) y la percepción general de los clientes.\n\n"
+        f"Reseñas:\n{reviews_text}\n\n"
+        f"Responde SOLO con el resumen en español, sin encabezados ni listas."
+    )
+    try:
+        msg = _anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=180,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return ""
+
+
+def enrich_browser_result(page, item: dict, with_reviews: bool = False) -> dict:
     url = item.get("google_maps_url")
     if not url:
         return item
@@ -225,6 +302,11 @@ def enrich_browser_result(page, item: dict) -> dict:
     category = text_or_empty(page.locator("button[jsaction*='category']").first)
     if category:
         item["categoria"] = category
+
+    if with_reviews:
+        reviews = extract_reviews_from_page(page)
+        item["opiniones_muestra"] = reviews[:3]
+        item["resumen_actividad"] = summarize_with_ai(item.get("nombre", ""), reviews)
 
     return item
 
@@ -328,12 +410,13 @@ def scrape_maps_browser(phrase: str, filters: dict, progress=None) -> list[dict]
         unique = dedupe(results)
         filtered = apply_filters(unique, filters)
 
-        should_enrich = bool(filters.get("enrich_details"))
+        should_enrich_reviews = bool(filters.get("enrich_reviews"))
+        should_enrich = bool(filters.get("enrich_details")) or should_enrich_reviews
         if should_enrich:
             enriched = []
             for index, item in enumerate(filtered[:max_results], start=1):
                 log(f"Abriendo detalle {index}/{len(filtered[:max_results])}: {item.get('nombre', '')}")
-                enriched.append(enrich_browser_result(page, item))
+                enriched.append(enrich_browser_result(page, item, with_reviews=should_enrich_reviews))
             filtered = apply_filters(enriched, filters)
 
         browser.close()
