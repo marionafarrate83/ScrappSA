@@ -498,6 +498,9 @@
   <h1>ScrappSA <span>— Directorio y precios</span></h1>
   <div class="header-user">
     <span class="header-username">{{ username }}</span>
+    {% if is_admin %}
+    <a href="/admin" class="btn-logout">⚙ Admin</a>
+    {% endif %}
     <a href="/logout" class="btn-logout">Cerrar sesión</a>
   </div>
 </header>

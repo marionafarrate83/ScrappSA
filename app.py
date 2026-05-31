@@ -15,7 +15,8 @@ from flask import (
     stream_with_context, session, redirect, url_for,
 )
 from pymongo import MongoClient, DESCENDING
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
+from bson import ObjectId
 
 import scraper as sc
 import price_scraper as ps
@@ -54,6 +55,17 @@ def login_required(f):
     return _wrap
 
 
+def admin_required(f):
+    @functools.wraps(f)
+    def _wrap(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        if not session.get('is_admin'):
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return _wrap
+
+
 def log_audit(action, details=None):
     try:
         audit_col.insert_one({
@@ -82,6 +94,7 @@ def login():
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = str(user['_id'])
             session['username'] = user['username']
+            session['is_admin'] = bool(user.get('is_admin', False))
             log_audit('login')
             return redirect(url_for('index'))
         try:
@@ -173,10 +186,133 @@ def run_maps_job(job_id: str, query: str, location: str, filters: dict):
 
 
 # ── Routes ───────────────────────────────────────────────────
+def _fmt_audit_details(entry):
+    action = entry.get('action', '')
+    d = entry.get('details', {})
+    if action == 'search':
+        parts = [d.get('mode', ''), d.get('query', '')]
+        if d.get('location'):
+            parts.append(f"en {d['location']}")
+        return ' › '.join(p for p in parts if p)
+    if action == 'login_failed':
+        return 'intento fallido'
+    if action.startswith('admin_'):
+        t = d.get('target_user', '')
+        return f'→ {t}' if t else ''
+    return ''
+
+
+# ── Admin routes ─────────────────────────────────────────────
+@app.route('/admin')
+@admin_required
+def admin_panel():
+    users = list(users_col.find({}, {'password_hash': 0}).sort('created_at', -1))
+    for u in users:
+        u['_id'] = str(u['_id'])
+        ts = u.get('created_at')
+        u['created_str'] = ts.strftime('%d/%m/%Y') if ts else '—'
+        last = audit_col.find_one({'user': u['username'], 'action': 'login'}, sort=[('timestamp', -1)])
+        u['last_login'] = last['timestamp'].strftime('%d/%m/%Y %H:%M') if last else 'Nunca'
+
+    filter_user = request.args.get('user', '')
+    filter_action = request.args.get('action', '')
+    page = max(1, int(request.args.get('page', 1) or 1))
+    per_page = 50
+    tab = request.args.get('tab', 'users')
+
+    q = {}
+    if filter_user:
+        q['user'] = filter_user
+    if filter_action:
+        q['action'] = filter_action
+
+    total_logs = audit_col.count_documents(q)
+    logs = list(audit_col.find(q).sort('timestamp', -1).skip((page - 1) * per_page).limit(per_page))
+    for entry in logs:
+        entry['_id'] = str(entry['_id'])
+        ts = entry.get('timestamp')
+        entry['ts_str'] = ts.strftime('%d/%m/%Y %H:%M:%S') if ts else '—'
+        entry['details_fmt'] = _fmt_audit_details(entry)
+
+    return render_template('admin.html',
+        username=session.get('username'),
+        current_user_id=session.get('user_id'),
+        users=users,
+        tab=tab,
+        audit_logs=logs,
+        total_logs=total_logs,
+        page=page,
+        pages=max(1, (total_logs + per_page - 1) // per_page),
+        filter_user=filter_user,
+        filter_action=filter_action,
+        user_list=[u['username'] for u in users],
+    )
+
+
+@app.route('/admin/users/create', methods=['POST'])
+@admin_required
+def admin_create_user():
+    username = (request.form.get('username') or '').strip().lower()
+    password = request.form.get('password') or ''
+    is_admin = bool(request.form.get('is_admin'))
+    if not username or not password:
+        return redirect(url_for('admin_panel'))
+    if not users_col.find_one({'username': username}):
+        users_col.insert_one({
+            'username': username,
+            'password_hash': generate_password_hash(password, method='pbkdf2:sha256'),
+            'created_at': datetime.utcnow(),
+            'is_active': True,
+            'is_admin': is_admin,
+        })
+        log_audit('admin_create_user', {'target_user': username, 'is_admin': is_admin})
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admin/users/<user_id>/toggle-admin', methods=['POST'])
+@admin_required
+def admin_toggle_admin(user_id):
+    user = users_col.find_one({'_id': ObjectId(user_id)})
+    if user and str(user['_id']) != session.get('user_id'):
+        new_val = not user.get('is_admin', False)
+        users_col.update_one({'_id': ObjectId(user_id)}, {'$set': {'is_admin': new_val}})
+        log_audit('admin_toggle_admin', {'target_user': user['username'], 'is_admin': new_val})
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admin/users/<user_id>/toggle-active', methods=['POST'])
+@admin_required
+def admin_toggle_active(user_id):
+    user = users_col.find_one({'_id': ObjectId(user_id)})
+    if user and str(user['_id']) != session.get('user_id'):
+        new_val = not user.get('is_active', True)
+        users_col.update_one({'_id': ObjectId(user_id)}, {'$set': {'is_active': new_val}})
+        log_audit('admin_toggle_active', {'target_user': user['username'], 'is_active': new_val})
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admin/users/<user_id>/password', methods=['POST'])
+@admin_required
+def admin_change_password(user_id):
+    password = request.form.get('password') or ''
+    if password:
+        user = users_col.find_one({'_id': ObjectId(user_id)})
+        if user:
+            users_col.update_one(
+                {'_id': ObjectId(user_id)},
+                {'$set': {'password_hash': generate_password_hash(password, method='pbkdf2:sha256')}},
+            )
+            log_audit('admin_change_password', {'target_user': user.get('username')})
+    return redirect(url_for('admin_panel'))
+
+
 @app.route("/")
 @login_required
 def index():
-    return render_template("index.html", username=session.get('username'))
+    return render_template("index.html",
+        username=session.get('username'),
+        is_admin=session.get('is_admin', False),
+    )
 
 
 @app.route("/api/scrape", methods=["POST"])
