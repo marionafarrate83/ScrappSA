@@ -572,6 +572,10 @@
         <label>Producto</label>
         <input id="inp-product" type="text" placeholder="ej. paracetamol 500 mg, ensure vainilla..." autocomplete="off" />
       </div>
+
+      <div class="check-row">
+        <label><input id="inp-prices-browser" type="checkbox" /> Usar navegador real (más lento, más resultados)</label>
+      </div>
     </div>
 
     <div id="maps-form" class="hidden">
@@ -848,7 +852,7 @@ async function startSearch() {
   // Iniciar job
   const endpoint = isPrices ? '/api/compare' : isMaps ? '/api/maps' : '/api/scrape';
   const payloadBody = isPrices
-    ? { query }
+    ? { query, use_browser: $('inp-prices-browser').checked }
     : isMaps
     ? { query, location, filters: getMapsFilters() }
     : { query, location };

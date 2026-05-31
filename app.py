@@ -143,7 +143,7 @@ def run_scrape_job(job_id: str, query: str, location: str):
         log_q.put(None)
 
 
-def run_price_job(job_id: str, query: str):
+def run_price_job(job_id: str, query: str, use_browser: bool = False):
     job = jobs[job_id]
     log_q: queue.Queue = job["log"]
 
@@ -151,7 +151,7 @@ def run_price_job(job_id: str, query: str):
         log_q.put(msg)
 
     try:
-        results = ps.compare_prices(query, progress=progress)
+        results = ps.compare_prices(query, progress=progress, use_browser=use_browser)
         with jobs_lock:
             jobs[job_id]["results"] = results
             jobs[job_id]["status"] = "done"
@@ -381,6 +381,7 @@ def start_maps():
 def start_compare():
     data = request.get_json()
     query = (data.get("query") or "").strip()
+    use_browser = bool(data.get("use_browser", False))
 
     if not query:
         return jsonify({"error": "Falta parámetro query"}), 400
@@ -396,9 +397,9 @@ def start_compare():
             "log": queue.Queue(),
         }
 
-    log_audit('search', {'mode': 'prices', 'query': query})
+    log_audit('search', {'mode': 'prices', 'query': query, 'use_browser': use_browser})
 
-    thread = threading.Thread(target=run_price_job, args=(job_id, query), daemon=True)
+    thread = threading.Thread(target=run_price_job, args=(job_id, query, use_browser), daemon=True)
     thread.start()
     return jsonify({"job_id": job_id})
 
