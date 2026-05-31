@@ -575,6 +575,7 @@
 
       <div class="check-row">
         <label><input id="inp-prices-browser" type="checkbox" /> Usar navegador real (más lento, más resultados)</label>
+        <label><input id="inp-prices-shopping" type="checkbox" checked /> Incluir Google Shopping ✦</label>
       </div>
     </div>
 
@@ -789,7 +790,7 @@ function setMode(mode) {
       : 'Ingresa un oficio y ciudad para comenzar';
   $('empty-help').textContent =
     mode === 'prices'
-      ? 'Se buscará en farmacias y supermercados principales'
+      ? 'Se buscará en farmacias y supermercados principales, más Google Shopping'
       : mode === 'maps'
       ? 'Personaliza zona, radio, calificación y datos requeridos'
       : 'Los resultados aparecerán aquí en tiempo real';
@@ -852,7 +853,7 @@ async function startSearch() {
   // Iniciar job
   const endpoint = isPrices ? '/api/compare' : isMaps ? '/api/maps' : '/api/scrape';
   const payloadBody = isPrices
-    ? { query, use_browser: $('inp-prices-browser').checked }
+    ? { query, use_browser: $('inp-prices-browser').checked, include_google_shopping: $('inp-prices-shopping').checked }
     : isMaps
     ? { query, location, filters: getMapsFilters() }
     : { query, location };

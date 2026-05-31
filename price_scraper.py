@@ -452,6 +452,150 @@ def scrape_discovered_pages(session: requests.Session, store: Store, query: str)
     return None
 
 
+# ── Google Shopping ─────────────────────────────────────────
+def _resolve_google_url(href: str) -> str:
+    if not href:
+        return ""
+    if "/url?" in href or "google.com/url?" in href:
+        qs = parse_qs(urlparse(href).query)
+        return qs.get("url", qs.get("q", [""]))[0]
+    if href.startswith("/"):
+        return "https://www.google.com" + href
+    return href
+
+
+def _extract_shopping_cards(html: str, query: str, max_results: int = 20) -> list[dict]:
+    soup = BeautifulSoup(html, "lxml")
+    products: list[dict] = []
+    seen: set = set()
+
+    def add_product(title: str, price: float, store: str, url: str, source: str = "google-shopping") -> None:
+        key = (title.lower()[:60], round(price, 0))
+        if key in seen or not title or not price:
+            return
+        seen.add(key)
+        products.append({
+            "tienda": store or "Google Shopping",
+            "producto": title[:180],
+            "precio": price,
+            "precio_texto": f"${price:,.2f}",
+            "url": url,
+            "fuente": source,
+            "estado": "Encontrado",
+        })
+
+    # Strategy 1: JSON-LD structured data
+    for script in soup.find_all("script", type="application/ld+json"):
+        raw = script.string or ""
+        if "Product" not in raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            continue
+        for item in walk_json(data):
+            if not isinstance(item, dict) or item.get("@type") != "Product":
+                continue
+            name = clean_text(item.get("name", ""))
+            offers = item.get("offers") or {}
+            if isinstance(offers, list):
+                offers = offers[0] if offers else {}
+            price = normalize_price(offers.get("price") if isinstance(offers, dict) else None)
+            seller = (offers or {}).get("seller") or {} if isinstance(offers, dict) else {}
+            store = clean_text(seller.get("name", "") if isinstance(seller, dict) else "")
+            url = item.get("url") or (offers.get("url", "") if isinstance(offers, dict) else "")
+            if name and price:
+                add_product(name, price, store, _resolve_google_url(url), "google-shopping (json-ld)")
+            if len(products) >= max_results:
+                return products
+
+    # Strategy 2: data-docid / sh-dlr / sh-dgr containers
+    for card in soup.select("div[data-docid], li[class*='sh-dlr'], div[class*='sh-dgr'], div[data-lver]"):
+        if len(products) >= max_results:
+            break
+        title_el = card.find(["h3", "h4"]) or card.find(attrs={"class": re.compile(r"tAxDx|EI11Pd", re.I)})
+        title = clean_text(title_el.get_text() if title_el else "")
+        if not title:
+            continue
+        all_text = card.get_text(" ", strip=True)
+        price_m = PRICE_RE.search(all_text)
+        price = normalize_price(price_m.group(0)) if price_m else None
+        if not price:
+            continue
+        store_el = card.find(attrs={"class": re.compile(r"aULzUe|IuHnof|E5ocAb", re.I)})
+        store = clean_text(store_el.get_text() if store_el else "")
+        link = card.find("a", href=True)
+        url = _resolve_google_url(link["href"]) if link else ""
+        add_product(title, price, store, url)
+
+    # Strategy 3: generic fallback — any div/li with an h3/h4 and a price
+    if len(products) < 3:
+        for node in soup.find_all(["div", "article", "li"], limit=500):
+            if len(products) >= max_results:
+                break
+            title_el = node.find(["h3", "h4"])
+            if not title_el:
+                continue
+            title = clean_text(title_el.get_text())
+            if not title or len(title) < 5:
+                continue
+            text = node.get_text(" ", strip=True)
+            price_m = PRICE_RE.search(text)
+            price = normalize_price(price_m.group(0)) if price_m else None
+            if not price:
+                continue
+            link = node.find("a", href=True)
+            url = _resolve_google_url(link["href"]) if link else ""
+            add_product(title, price, "", url, "google-shopping (html)")
+
+    return products[:max_results]
+
+
+def scrape_google_shopping(
+    query: str,
+    max_results: int = 20,
+    progress=None,
+) -> list[dict]:
+    """Scrapes Google Shopping via Playwright; returns results from any store."""
+    if sync_playwright is None:
+        if progress:
+            progress("Google Shopping: Playwright no disponible")
+        return []
+
+    url = f"https://www.google.com/search?q={quote_plus(query)}&tbm=shop&hl=es-419&gl=mx"
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                locale="es-MX",
+                viewport={"width": 1366, "height": 768},
+                user_agent=HEADERS["User-Agent"],
+                extra_http_headers={
+                    "sec-ch-ua": HEADERS["sec-ch-ua"],
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": '"Windows"',
+                    "sec-fetch-dest": "document",
+                    "sec-fetch-mode": "navigate",
+                    "sec-fetch-site": "none",
+                    "sec-fetch-user": "?1",
+                    "Accept-Language": "es-MX,es;q=0.9",
+                },
+            )
+            page = context.new_page()
+            page.goto(url, wait_until="domcontentloaded", timeout=25000)
+            page.wait_for_timeout(2000)
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            page.wait_for_timeout(1500)
+            html = page.content()
+            browser.close()
+
+        return _extract_shopping_cards(html, query, max_results)
+    except Exception as exc:
+        if progress:
+            progress(f"Google Shopping: error — {exc}")
+        return []
+
+
 # ── Scraper principal por tienda ─────────────────────────────
 def scrape_store(
     session: requests.Session,
@@ -502,7 +646,12 @@ def scrape_store(
     }
 
 
-def compare_prices(query: str, progress=None, use_browser: bool = False) -> list[dict]:
+def compare_prices(
+    query: str,
+    progress=None,
+    use_browser: bool = False,
+    include_google_shopping: bool = False,
+) -> list[dict]:
     def log(message: str):
         if progress:
             progress(message)
@@ -535,6 +684,15 @@ def compare_prices(query: str, progress=None, use_browser: bool = False) -> list
             })
             log(f"Error en {store.name}: {exc}")
         time.sleep(0.6 if not use_browser else 1.2)
+
+    if include_google_shopping:
+        log("Buscando en Google Shopping...")
+        shopping_results = scrape_google_shopping(query, max_results=20, progress=log)
+        if shopping_results:
+            results.extend(shopping_results)
+            log(f"✓ Google Shopping: {len(shopping_results)} resultados encontrados")
+        else:
+            log("✗ Google Shopping: sin resultados")
 
     found = [r for r in results if r.get("precio") is not None]
     if found:

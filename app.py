@@ -143,7 +143,7 @@ def run_scrape_job(job_id: str, query: str, location: str):
         log_q.put(None)
 
 
-def run_price_job(job_id: str, query: str, use_browser: bool = False):
+def run_price_job(job_id: str, query: str, use_browser: bool = False, include_google_shopping: bool = False):
     job = jobs[job_id]
     log_q: queue.Queue = job["log"]
 
@@ -151,7 +151,7 @@ def run_price_job(job_id: str, query: str, use_browser: bool = False):
         log_q.put(msg)
 
     try:
-        results = ps.compare_prices(query, progress=progress, use_browser=use_browser)
+        results = ps.compare_prices(query, progress=progress, use_browser=use_browser, include_google_shopping=include_google_shopping)
         with jobs_lock:
             jobs[job_id]["results"] = results
             jobs[job_id]["status"] = "done"
@@ -382,6 +382,7 @@ def start_compare():
     data = request.get_json()
     query = (data.get("query") or "").strip()
     use_browser = bool(data.get("use_browser", False))
+    include_google_shopping = bool(data.get("include_google_shopping", False))
 
     if not query:
         return jsonify({"error": "Falta parámetro query"}), 400
@@ -397,9 +398,9 @@ def start_compare():
             "log": queue.Queue(),
         }
 
-    log_audit('search', {'mode': 'prices', 'query': query, 'use_browser': use_browser})
+    log_audit('search', {'mode': 'prices', 'query': query, 'use_browser': use_browser, 'google_shopping': include_google_shopping})
 
-    thread = threading.Thread(target=run_price_job, args=(job_id, query, use_browser), daemon=True)
+    thread = threading.Thread(target=run_price_job, args=(job_id, query, use_browser, include_google_shopping), daemon=True)
     thread.start()
     return jsonify({"job_id": job_id})
 
