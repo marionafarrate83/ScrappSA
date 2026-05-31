@@ -8,8 +8,12 @@ import sys
 import os
 import getpass
 from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
+
+load_dotenv(Path(__file__).parent / '.env')
 
 
 def main():
