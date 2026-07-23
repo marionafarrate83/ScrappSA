@@ -57,6 +57,17 @@ def extract_phone_number(value: str) -> str:
     return re.sub(r"\s+", "", match.group(0)).strip() if match else ""
 
 
+def extract_email(html: str) -> str:
+    mailto_match = re.search(r"mailto:([^\"'<>?\s]+)", html, re.I)
+    if mailto_match:
+        return mailto_match.group(1).strip()
+
+    email_match = re.search(
+        r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", html
+    )
+    return email_match.group(0) if email_match else ""
+
+
 def parse_legacy_rows(soup: BeautifulSoup) -> list:
     rows = soup.find_all("tr", class_="table-row")
     results = []
@@ -86,10 +97,9 @@ def parse_legacy_rows(soup: BeautifulSoup) -> list:
         wa_tag = row.find("a", class_=re.compile(r"color-whatsapp"))
         whatsapp = extract_whatsapp_number(wa_tag.get("href", "")) if wa_tag else ""
 
-        email_match = re.search(
-            r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", str(row)
-        )
-        email = email_match.group(0) if email_match else ""
+        email = extract_email(str(row))
+        detail_link = row.find("a", href=re.compile(r"^/informacion/"))
+        detail_url = clean_website(detail_link.get("href", "")) if detail_link else ""
 
         results.append({
             "nombre": name,
@@ -98,6 +108,7 @@ def parse_legacy_rows(soup: BeautifulSoup) -> list:
             "direccion": address,
             "sitio_web": website,
             "email": email,
+            "_detail_url": detail_url,
         })
 
     return results
@@ -122,6 +133,9 @@ def parse_article_cards(soup: BeautifulSoup) -> list:
         if website_link:
             website = clean_website(website_link.get("href", ""))
 
+        detail_link = article.find("a", href=re.compile(r"^/informacion/"))
+        detail_url = clean_website(detail_link.get("href", "")) if detail_link else ""
+
         phone = extract_phone_number(article.get("data-phone", ""))
         if not phone:
             phone_link = article.find("a", href=re.compile(r"^tel:", re.I))
@@ -135,10 +149,7 @@ def parse_article_cards(soup: BeautifulSoup) -> list:
             address_tag = article.find(string=re.compile(r"\bCP\s*\d{5}\b", re.I))
             address = re.sub(r"\s+", " ", address_tag.strip()) if address_tag else ""
 
-        email_match = re.search(
-            r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", str(article)
-        )
-        email = email_match.group(0) if email_match else ""
+        email = extract_email(str(article))
 
         results.append({
             "nombre": name,
@@ -147,6 +158,7 @@ def parse_article_cards(soup: BeautifulSoup) -> list:
             "direccion": address,
             "sitio_web": website,
             "email": email,
+            "_detail_url": detail_url,
         })
 
     return results
@@ -197,6 +209,37 @@ def build_page_url(base_url: str, page: int) -> str:
     if not base_url:
         return ""
     return urljoin(BASE_URL, f"{base_url.rstrip('/')}/{page}")
+
+
+def enrich_missing_emails(session: requests.Session, results: list, progress=None) -> None:
+    pending = [item for item in results if not item.get("email") and item.get("_detail_url")]
+    if not pending:
+        return
+
+    if progress:
+        progress(f"Buscando correos en perfiles: {len(pending)} negocios")
+
+    found = 0
+    for idx, item in enumerate(pending, start=1):
+        try:
+            time.sleep(0.35)
+            r = session.get(item["_detail_url"], timeout=20)
+            r.raise_for_status()
+            email = extract_email(r.text)
+            if email:
+                item["email"] = email
+                found += 1
+        except Exception:
+            pass
+
+        if progress and (idx % 20 == 0 or idx == len(pending)):
+            progress(f"Correos encontrados: {found}/{idx}")
+
+
+def strip_internal_fields(results: list) -> list:
+    for item in results:
+        item.pop("_detail_url", None)
+    return results
 
 
 def scrape_all(query: str, location: str, progress=None) -> list:
@@ -252,6 +295,9 @@ def scrape_all(query: str, location: str, progress=None) -> list:
         if key not in seen:
             seen.add(key)
             unique.append(item)
+
+    enrich_missing_emails(session, unique, progress=log)
+    strip_internal_fields(unique)
 
     log(f"DONE:{len(unique)}")
     return unique
