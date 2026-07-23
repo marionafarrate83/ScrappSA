@@ -486,9 +486,9 @@ def download(job_id: str, fmt: str):
         if job.get("kind") == "maps":
             fields = [
                 "nombre", "categoria", "calificacion", "resenas", "telefono",
-                "direccion", "sitio_web", "google_maps_url", "latitud", "longitud",
-                "linkedin_url", "lider_nombre", "lider_cargo", "lider_fuente",
-                "lider_confianza", "resumen_actividad", "estado"
+                "email", "direccion", "sitio_web", "google_maps_url", "latitud",
+                "longitud", "linkedin_url", "lider_nombre", "lider_cargo",
+                "lider_fuente", "lider_confianza", "resumen_actividad", "estado"
             ]
             # opiniones_muestra es lista — convertir a texto para CSV
             results = [

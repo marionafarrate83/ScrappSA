@@ -47,6 +47,7 @@ HEADERS = {
 }
 
 PHONE_RE = re.compile(r"(?:\+?52[\s.-]?)?(?:\(?\d{2,3}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{4}")
+EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 RATING_RE = re.compile(r"([1-5](?:[.,]\d)?)\s*(?:estrellas?|stars?|star rating)", re.I)
 REVIEWS_RE = re.compile(r"([\d,.]+)\s*(?:reseñas?|opiniones|reviews?)", re.I)
 COORD_RE = re.compile(r"(?:@|!3d)(-?\d+\.\d+)(?:,|!4d)(-?\d+\.\d+)")
@@ -59,6 +60,7 @@ def clean_text(value: str) -> str:
 
 def empty_lead_fields() -> dict:
     return {
+        "email": "",
         "linkedin_url": "",
         "lider_nombre": "",
         "lider_cargo": "",
@@ -174,6 +176,7 @@ def extract_card_from_browser(card) -> Optional[dict]:
 
     full_text = text_or_empty(card)
     phone_match = PHONE_RE.search(full_text)
+    email_match = EMAIL_RE.search(full_text)
     coords = COORD_RE.search(maps_url)
 
     return {
@@ -182,6 +185,7 @@ def extract_card_from_browser(card) -> Optional[dict]:
         "calificacion": parse_rating_from_text(rating_text),
         "resenas": parse_reviews_from_text(rating_text),
         "telefono": phone_match.group(0) if phone_match else "",
+        "email": email_match.group(0) if email_match else "",
         "direccion": "",
         "sitio_web": "",
         "google_maps_url": maps_url,
@@ -288,6 +292,18 @@ def enrich_browser_result(page, item: dict, with_reviews: bool = False) -> dict:
         website = attr_or_empty(page.locator("a[aria-label^='Sitio web:']").first, "href")
     if website:
         item["sitio_web"] = website
+
+    mailto = attr_or_empty(page.locator("a[href^='mailto:']").first, "href")
+    if mailto:
+        email = mailto.replace("mailto:", "").split("?", 1)[0].strip()
+        if email:
+            item["email"] = email
+
+    if not item.get("email"):
+        details_text = text_or_empty(page.locator("body").first)
+        email_match = EMAIL_RE.search(details_text)
+        if email_match:
+            item["email"] = email_match.group(0)
 
     for selector in [
         "button[data-item-id^='phone:tel:']",
@@ -399,6 +415,7 @@ def scrape_maps_browser(phrase: str, filters: dict, progress=None) -> list[dict]
                         "calificacion": None,
                         "resenas": None,
                         "telefono": "",
+                        "email": "",
                         "direccion": "",
                         "sitio_web": "",
                         "google_maps_url": url_value,
@@ -499,6 +516,12 @@ def parse_internal_record(record: list) -> Optional[dict]:
         elif isinstance(phone_data, str):
             phone = phone_data
 
+    email = ""
+    record_text = json.dumps(record, ensure_ascii=False)
+    email_match = EMAIL_RE.search(record_text)
+    if email_match:
+        email = email_match.group(0)
+
     categories = record[13] if isinstance(record[13], list) else []
     category = ", ".join(str(item) for item in categories[:3] if item)
     lat = record[9][2] if len(record[9]) > 2 else ""
@@ -515,6 +538,7 @@ def parse_internal_record(record: list) -> Optional[dict]:
         "calificacion": rating,
         "resenas": None,
         "telefono": phone,
+        "email": email,
         "direccion": full_address or address,
         "sitio_web": website,
         "google_maps_url": maps_url,
@@ -571,6 +595,7 @@ def extract_business(name: str, url: str, text: str) -> dict:
     rating = parse_number(extract_first(RATING_RE, context))
     reviews = parse_int(extract_first(REVIEWS_RE, context))
     phone_match = PHONE_RE.search(context)
+    email_match = EMAIL_RE.search(context)
     coords = COORD_RE.search(url) or COORD_RE.search(context)
 
     lat = coords.group(1) if coords else ""
@@ -582,6 +607,7 @@ def extract_business(name: str, url: str, text: str) -> dict:
         "calificacion": rating,
         "resenas": reviews,
         "telefono": phone_match.group(0) if phone_match else "",
+        "email": email_match.group(0) if email_match else "",
         "direccion": "",
         "sitio_web": "",
         "google_maps_url": url,
@@ -697,6 +723,7 @@ def scrape_maps(query: str, location: str, filters: Optional[dict] = None, progr
             "calificacion": None,
             "resenas": None,
             "telefono": "",
+            "email": "",
             "direccion": "",
             "sitio_web": "",
             "google_maps_url": url,

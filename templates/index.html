@@ -991,6 +991,7 @@ function renderHeader() {
         <th data-col="nombre">Nombre <i class="sort-icon">↕</i></th>
         <th data-col="calificacion">Rating <i class="sort-icon">↕</i></th>
         <th data-col="telefono">Teléfono <i class="sort-icon">↕</i></th>
+        <th data-col="email">Correo <i class="sort-icon">↕</i></th>
         <th data-col="resumen_actividad">Actividad / Resumen IA <i class="sort-icon">↕</i></th>
         <th data-col="lider_nombre">Líder <i class="sort-icon">↕</i></th>
         <th data-col="lider_cargo">Cargo <i class="sort-icon">↕</i></th>
@@ -998,7 +999,7 @@ function renderHeader() {
         <th data-col="google_maps_url">Google Maps <i class="sort-icon">↕</i></th>
       </tr>
     `;
-    $('filter-input').placeholder = 'Filtrar por nombre, teléfono, rating o estado…';
+    $('filter-input').placeholder = 'Filtrar por nombre, correo, teléfono, rating o estado…';
   } else {
     head.innerHTML = `
       <tr>
@@ -1029,7 +1030,8 @@ function renderTable(rows) {
 
   const tbody = $('results-body');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td class="no-rows" colspan="5">Sin resultados para este filtro</td></tr>';
+    const colspan = currentMode === 'maps' ? 9 : 5;
+    tbody.innerHTML = `<tr><td class="no-rows" colspan="${colspan}">Sin resultados para este filtro</td></tr>`;
     return;
   }
 
@@ -1059,6 +1061,9 @@ function renderTable(rows) {
         <td class="td-name">${esc(r.nombre || '—')}</td>
         <td class="td-phone">${r.calificacion !== null && r.calificacion !== undefined ? esc(r.calificacion) : '—'}</td>
         <td class="td-phone">${esc(r.telefono)}</td>
+        <td class="td-web">${r.email
+          ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`
+          : '—'}</td>
         <td class="td-summary">${r.resumen_actividad
           ? `<span title="${esc(r.resumen_actividad)}">${esc(r.resumen_actividad)}</span>`
           : '<span class="status-pill">—</span>'}</td>
