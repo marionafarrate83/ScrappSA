@@ -7,6 +7,7 @@ import json
 import csv
 import time
 import re
+from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.seccionamarilla.com.mx"
@@ -48,8 +49,15 @@ def extract_whatsapp_number(href: str) -> str:
     return ""
 
 
-def parse_page(html: str) -> list:
-    soup = BeautifulSoup(html, "lxml")
+def extract_phone_number(value: str) -> str:
+    if not value:
+        return ""
+    value = value.replace("tel:", "")
+    match = re.search(r"[\d()\-\s+]{7,}", value)
+    return re.sub(r"\s+", "", match.group(0)).strip() if match else ""
+
+
+def parse_legacy_rows(soup: BeautifulSoup) -> list:
     rows = soup.find_all("tr", class_="table-row")
     results = []
 
@@ -95,25 +103,100 @@ def parse_page(html: str) -> list:
     return results
 
 
-def get_pagination_info(html: str) -> tuple:
+def parse_article_cards(soup: BeautifulSoup) -> list:
+    articles = soup.find_all("article", attrs={"data-name": True})
+    results = []
+
+    for article in articles:
+        name = article.get("data-name", "").strip()
+        if not name:
+            name_tag = article.find("h2")
+            name = name_tag.get_text(" ", strip=True) if name_tag else ""
+        if not name:
+            continue
+
+        website = ""
+        website_link = article.find("a", attrs={"data-click-type": "pagina_web"})
+        if not website_link:
+            website_link = article.select_one("h2 a.business-click")
+        if website_link:
+            website = clean_website(website_link.get("href", ""))
+
+        phone = extract_phone_number(article.get("data-phone", ""))
+        if not phone:
+            phone_link = article.find("a", href=re.compile(r"^tel:", re.I))
+            phone = extract_phone_number(phone_link.get("href", "")) if phone_link else ""
+
+        wa_tag = article.find("a", href=re.compile(r"whatsapp\.com/send", re.I))
+        whatsapp = extract_whatsapp_number(wa_tag.get("href", "")) if wa_tag else ""
+
+        address = article.get("data-address", "").strip()
+        if not address:
+            address_tag = article.find(string=re.compile(r"\bCP\s*\d{5}\b", re.I))
+            address = re.sub(r"\s+", " ", address_tag.strip()) if address_tag else ""
+
+        email_match = re.search(
+            r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", str(article)
+        )
+        email = email_match.group(0) if email_match else ""
+
+        results.append({
+            "nombre": name,
+            "telefono": phone,
+            "whatsapp": whatsapp,
+            "direccion": address,
+            "sitio_web": website,
+            "email": email,
+        })
+
+    return results
+
+
+def parse_page(html: str) -> list:
+    soup = BeautifulSoup(html, "lxml")
+    results = parse_legacy_rows(soup)
+    if results:
+        return results
+    return parse_article_cards(soup)
+
+
+def get_pagination_info(html: str, current_url: str = "") -> tuple:
     """Devuelve (base_url_paginacion, total_pages)."""
     soup = BeautifulSoup(html, "lxml")
-    pagination = soup.find(class_="pagination")
-    if not pagination:
-        return None, 1
-
     pages = []
     base_url = None
-    for a in pagination.find_all("a", class_="page-link"):
+
+    pagination = soup.find(class_="pagination")
+    links = pagination.find_all("a", class_="page-link") if pagination else []
+
+    if not links:
+        links = [
+            a for a in soup.find_all("a", href=True)
+            if any(str(cls).startswith("paginacion-item") for cls in a.get("class", []))
+        ]
+
+    for a in links:
         text = a.get_text(strip=True)
         href = a.get("href", "")
         if text.isdigit() and href:
             pages.append(int(text))
-            # Extraer base URL quitando el número de página al final
             base_url = re.sub(r"/\d+$", "", href)
+
+    if current_url:
+        current_match = re.search(r"/(\d+)$", urlparse(current_url).path)
+        if current_match:
+            pages.append(int(current_match.group(1)))
+            if not base_url:
+                base_url = re.sub(r"/\d+$", "", current_url)
 
     total = max(pages) if pages else 1
     return base_url, total
+
+
+def build_page_url(base_url: str, page: int) -> str:
+    if not base_url:
+        return ""
+    return urljoin(BASE_URL, f"{base_url.rstrip('/')}/{page}")
 
 
 def scrape_all(query: str, location: str, progress=None) -> list:
@@ -141,7 +224,7 @@ def scrape_all(query: str, location: str, progress=None) -> list:
     )
     r.raise_for_status()
 
-    base_url, total_pages = get_pagination_info(r.text)
+    base_url, total_pages = get_pagination_info(r.text, r.url)
     log(f"Páginas encontradas: {total_pages}")
 
     all_results = parse_page(r.text)
@@ -149,7 +232,9 @@ def scrape_all(query: str, location: str, progress=None) -> list:
 
     for page in range(2, total_pages + 1):
         time.sleep(1.2)
-        url = f"{BASE_URL}{base_url}/{page}"
+        url = build_page_url(base_url, page)
+        if not url:
+            break
         try:
             r = session.get(url, timeout=20)
             r.raise_for_status()
