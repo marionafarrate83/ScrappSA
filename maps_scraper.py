@@ -58,6 +58,11 @@ def clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", value or "").strip()
 
 
+def clean_maps_field(value: str) -> str:
+    value = clean_text(value)
+    return re.sub(r"^[\ue000-\uf8ff\s]+", "", value).strip()
+
+
 def empty_lead_fields() -> dict:
     return {
         "email": "",
@@ -284,7 +289,7 @@ def enrich_browser_result(page, item: dict, with_reviews: bool = False) -> dict:
     ]:
         value = text_or_empty(page.locator(selector).first)
         if value:
-            item["direccion"] = value
+            item["direccion"] = clean_maps_field(value)
             break
 
     website = attr_or_empty(page.locator("a[data-item-id='authority']").first, "href")
@@ -312,7 +317,7 @@ def enrich_browser_result(page, item: dict, with_reviews: bool = False) -> dict:
     ]:
         value = text_or_empty(page.locator(selector).first)
         if value:
-            item["telefono"] = value
+            item["telefono"] = clean_maps_field(value)
             break
 
     category = text_or_empty(page.locator("button[jsaction*='category']").first)
@@ -424,17 +429,24 @@ def scrape_maps_browser(phrase: str, filters: dict, progress=None) -> list[dict]
                         "estado": "Encontrado",
                     })
 
-        unique = dedupe(results)
-        filtered = apply_filters(unique, filters)
-
         should_enrich_reviews = bool(filters.get("enrich_reviews"))
-        should_enrich = bool(filters.get("enrich_details")) or should_enrich_reviews
+        should_enrich = (
+            bool(filters.get("enrich_details"))
+            or bool(filters.get("require_phone"))
+            or bool(filters.get("require_website"))
+            or should_enrich_reviews
+        )
+        unique = dedupe(results)
+
         if should_enrich:
             enriched = []
-            for index, item in enumerate(filtered[:max_results], start=1):
-                log(f"Abriendo detalle {index}/{len(filtered[:max_results])}: {item.get('nombre', '')}")
+            detail_candidates = unique[:max_results]
+            for index, item in enumerate(detail_candidates, start=1):
+                log(f"Abriendo detalle {index}/{len(detail_candidates)}: {item.get('nombre', '')}")
                 enriched.append(enrich_browser_result(page, item, with_reviews=should_enrich_reviews))
             filtered = apply_filters(enriched, filters)
+        else:
+            filtered = apply_filters(unique, filters)
 
         browser.close()
         return filtered[:max_results]
