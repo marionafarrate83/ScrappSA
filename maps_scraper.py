@@ -429,11 +429,15 @@ def scrape_maps_browser(phrase: str, filters: dict, progress=None) -> list[dict]
                         "estado": "Encontrado",
                     })
 
+        missing_phone_data = results and not any(item.get("telefono") for item in results)
+        missing_website_data = results and not any(item.get("sitio_web") for item in results)
         should_enrich_reviews = bool(filters.get("enrich_reviews"))
         should_enrich = (
             bool(filters.get("enrich_details"))
             or bool(filters.get("require_phone"))
             or bool(filters.get("require_website"))
+            or missing_phone_data
+            or missing_website_data
             or should_enrich_reviews
         )
         unique = dedupe(results)
