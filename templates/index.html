@@ -131,18 +131,26 @@
       text-transform: uppercase;
       letter-spacing: .04em;
     }
-    .field input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1.5px solid var(--gray-200);
-      border-radius: 8px;
-      font-size: .95rem;
-      color: var(--gray-900);
-      transition: border-color .15s;
-      outline: none;
-    }
-    .field input:focus { border-color: var(--yellow-dark); }
-    .field input::placeholder { color: var(--gray-400); }
+	    .field input,
+	    .field textarea {
+	      width: 100%;
+	      padding: 10px 12px;
+	      border: 1.5px solid var(--gray-200);
+	      border-radius: 8px;
+	      font-size: .95rem;
+	      color: var(--gray-900);
+	      transition: border-color .15s;
+	      outline: none;
+	      font-family: inherit;
+	    }
+	    .field textarea {
+	      min-height: 104px;
+	      resize: vertical;
+	    }
+	    .field input:focus,
+	    .field textarea:focus { border-color: var(--yellow-dark); }
+	    .field input::placeholder,
+	    .field textarea::placeholder { color: var(--gray-400); }
     .field-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -349,17 +357,7 @@
     .btn-dl.json:hover { background: #fef3c7; }
     .btn-dl.csv  { border-color: var(--green); color: var(--green); background: #f0fdf4; }
     .btn-dl.csv:hover  { background: #dcfce7; }
-    .best-price {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 5px;
-      padding: 2px 7px;
-      background: #dcfce7;
-      color: #15803d;
-      font-size: .78rem;
-      font-weight: 700;
-    }
-    .status-pill {
+	    .status-pill {
       display: inline-flex;
       border-radius: 5px;
       padding: 2px 7px;
@@ -511,11 +509,11 @@
   <aside class="panel">
     <h2>Tipo de búsqueda</h2>
 
-    <div class="mode-tabs">
-      <button class="mode-tab active" id="mode-directory" type="button">Directorio</button>
-      <button class="mode-tab" id="mode-prices" type="button">Precios</button>
-      <button class="mode-tab" id="mode-maps" type="button">Maps</button>
-    </div>
+	    <div class="mode-tabs">
+	      <button class="mode-tab active" id="mode-directory" type="button">Directorio</button>
+	      <button class="mode-tab" id="mode-activity" type="button">Actividad económica</button>
+	      <button class="mode-tab" id="mode-maps" type="button">Maps</button>
+	    </div>
 
     <div id="directory-form">
       <h2>Parámetros de búsqueda</h2>
@@ -565,19 +563,34 @@
       </div>
     </div>
 
-    <div id="prices-form" class="hidden">
-      <h2>Comparador de precios</h2>
+	    <div id="activity-form" class="hidden">
+	      <h2>Actividad económica</h2>
 
-      <div class="field">
-        <label>Producto</label>
-        <input id="inp-product" type="text" placeholder="ej. paracetamol 500 mg, ensure vainilla..." autocomplete="off" />
-      </div>
+	      <div class="field">
+	        <label>Ciudad / Zona</label>
+	        <input id="inp-activity-location" type="text" placeholder="ej. Portales Oriente, CDMX" autocomplete="off" />
+	      </div>
 
-      <div class="check-row">
-        <label><input id="inp-prices-browser" type="checkbox" /> Usar navegador real (más lento, más resultados)</label>
-        <label><input id="inp-prices-shopping" type="checkbox" checked /> Incluir Google Shopping ✦</label>
-      </div>
-    </div>
+	      <div class="field-row">
+	        <div class="field">
+	          <label>Radio km</label>
+	          <input id="inp-activity-radius" type="number" min="1" max="50" step="1" placeholder="10" />
+	        </div>
+	        <div class="field">
+	          <label>Límite por giro</label>
+	          <input id="inp-activity-limit" type="number" min="5" max="80" step="5" value="25" />
+	        </div>
+	      </div>
+
+	      <div class="field">
+	        <label>Giros a peinar</label>
+	        <textarea id="inp-activity-giros" rows="5" placeholder="restaurantes, cafeterias, peluquerias, pollerias, ferreterias, tiendas de autoservicio"></textarea>
+	      </div>
+
+	      <div class="check-row">
+	        <label><input id="inp-activity-browser" type="checkbox" /> Scroll real por giro</label>
+	      </div>
+	    </div>
 
     <div id="maps-form" class="hidden">
       <h2>Google Maps</h2>
@@ -760,74 +773,78 @@ let currentMode = 'directory';
 
 const $ = id => document.getElementById(id);
 
-// ── Modos ───────────────────────────────────────────────────
-$('mode-directory').addEventListener('click', () => setMode('directory'));
-$('mode-prices').addEventListener('click', () => setMode('prices'));
-$('mode-maps').addEventListener('click', () => setMode('maps'));
+	// ── Modos ───────────────────────────────────────────────────
+	$('mode-directory').addEventListener('click', () => setMode('directory'));
+	$('mode-activity').addEventListener('click', () => setMode('economic_activity'));
+	$('mode-maps').addEventListener('click', () => setMode('maps'));
 
 function setMode(mode) {
   currentMode = mode;
   sortCol = null;
   sortAsc = true;
-  allResults = [];
+	  allResults = [];
 
-  $('mode-directory').classList.toggle('active', mode === 'directory');
-  $('mode-prices').classList.toggle('active', mode === 'prices');
-  $('mode-maps').classList.toggle('active', mode === 'maps');
-  $('directory-form').classList.toggle('hidden', mode !== 'directory');
-  $('prices-form').classList.toggle('hidden', mode !== 'prices');
-  $('maps-form').classList.toggle('hidden', mode !== 'maps');
+	  $('mode-directory').classList.toggle('active', mode === 'directory');
+	  $('mode-activity').classList.toggle('active', mode === 'economic_activity');
+	  $('mode-maps').classList.toggle('active', mode === 'maps');
+	  $('directory-form').classList.toggle('hidden', mode !== 'directory');
+	  $('activity-form').classList.toggle('hidden', mode !== 'economic_activity');
+	  $('maps-form').classList.toggle('hidden', mode !== 'maps');
   $('stats-box').classList.add('hidden');
   $('results-section').classList.add('hidden');
   $('log-card').classList.add('hidden');
   $('empty-state').classList.remove('hidden');
 
-  $('empty-state').querySelector('p').textContent =
-    mode === 'prices'
-      ? 'Ingresa un producto para comparar precios'
-      : mode === 'maps'
-      ? 'Busca lugares y negocios en Google Maps'
-      : 'Ingresa un oficio y ciudad para comenzar';
-  $('empty-help').textContent =
-    mode === 'prices'
-      ? 'Se buscará en farmacias y supermercados principales, más Google Shopping'
-      : mode === 'maps'
-      ? 'Personaliza zona, radio, calificación y datos requeridos'
+	  $('empty-state').querySelector('p').textContent =
+	    mode === 'economic_activity'
+	      ? 'Ingresa una zona para medir actividad económica'
+	      : mode === 'maps'
+	      ? 'Busca lugares y negocios en Google Maps'
+	      : 'Ingresa un oficio y ciudad para comenzar';
+	  $('empty-help').textContent =
+	    mode === 'economic_activity'
+	      ? 'Se peinarán giros comunes y se agruparán los negocios encontrados'
+	      : mode === 'maps'
+	      ? 'Personaliza zona, radio, calificación y datos requeridos'
       : 'Los resultados aparecerán aquí en tiempo real';
   $('filter-input').value = '';
   renderHeader();
 }
 
-// ── Botón Buscar ────────────────────────────────────────────
-$('btn-search').addEventListener('click', startSearch);
-$('inp-product').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
-$('inp-maps-query').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
+	// ── Botón Buscar ────────────────────────────────────────────
+	$('btn-search').addEventListener('click', startSearch);
+	$('inp-activity-location').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
+	$('inp-maps-query').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
 $('inp-maps-location').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
 [$('inp-query'), $('inp-location')].forEach(inp =>
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); })
 );
 
-async function startSearch() {
-  const isPrices = currentMode === 'prices';
-  const isMaps = currentMode === 'maps';
-  const query = isPrices
-    ? $('inp-product').value.trim()
-    : isMaps
-    ? $('inp-maps-query').value.trim()
-    : $('inp-query').value.trim();
-  const location = isMaps ? $('inp-maps-location').value.trim() : $('inp-location').value.trim();
+	async function startSearch() {
+	  const isActivity = currentMode === 'economic_activity';
+	  const isMaps = currentMode === 'maps';
+	  const query = isActivity
+	    ? 'actividad economica'
+	    : isMaps
+	    ? $('inp-maps-query').value.trim()
+	    : $('inp-query').value.trim();
+	  const location = isActivity
+	    ? $('inp-activity-location').value.trim()
+	    : isMaps
+	    ? $('inp-maps-location').value.trim()
+	    : $('inp-location').value.trim();
 
-  if (isPrices && !query) {
-    alert('Por favor ingresa el producto a comparar.');
-    return;
-  }
+	  if (isActivity && !location) {
+	    alert('Por favor ingresa la ciudad o zona a analizar.');
+	    return;
+	  }
   if (isMaps && (!query || !location)) {
     alert('Por favor ingresa qué negocio buscas y la ciudad o zona.');
     return;
   }
-  if (!isPrices && !isMaps && (!query || !location)) {
-    alert('Por favor ingresa qué buscas y la ciudad.');
-    return;
+	  if (!isActivity && !isMaps && (!query || !location)) {
+	    alert('Por favor ingresa qué buscas y la ciudad.');
+	    return;
   }
 
   // Reset UI
@@ -840,22 +857,22 @@ async function startSearch() {
   $('stats-box').classList.add('hidden');
   $('dl-json').classList.add('hidden');
   $('dl-csv').classList.add('hidden');
-  $('log-output').innerHTML = '';
-  $('log-spinner').classList.remove('hidden');
-  $('log-title').textContent = isPrices
-    ? `Comparando "${query}"…`
-    : isMaps
-    ? `Buscando "${query}" en Google Maps…`
+	  $('log-output').innerHTML = '';
+	  $('log-spinner').classList.remove('hidden');
+	  $('log-title').textContent = isActivity
+	    ? `Peinando actividad económica en ${location}…`
+	    : isMaps
+	    ? `Buscando "${query}" en Google Maps…`
     : `Buscando "${query}" en ${location}…`;
   $('log-card').classList.remove('hidden');
-  renderHeader();
+	  renderHeader();
 
-  // Iniciar job
-  const endpoint = isPrices ? '/api/compare' : isMaps ? '/api/maps' : '/api/scrape';
-  const payloadBody = isPrices
-    ? { query, use_browser: $('inp-prices-browser').checked, include_google_shopping: $('inp-prices-shopping').checked }
-    : isMaps
-    ? { query, location, filters: getMapsFilters() }
+	  // Iniciar job
+	  const endpoint = isActivity ? '/api/economic-activity' : isMaps ? '/api/maps' : '/api/scrape';
+	  const payloadBody = isActivity
+	    ? { location, filters: getActivityFilters() }
+	    : isMaps
+	    ? { query, location, filters: getMapsFilters() }
     : { query, location };
   const res = await fetch(endpoint, {
     method: 'POST',
@@ -909,20 +926,20 @@ function appendLog(msg, cls = '') {
   out.scrollTop = out.scrollHeight;
 }
 
-async function onJobDone(job_id, count) {
-  $('log-spinner').classList.add('hidden');
-  $('log-title').textContent = currentMode === 'prices'
-    ? `Listo — ${count} tiendas con precio encontrado`
-    : currentMode === 'maps'
-    ? `Listo — ${count} lugares encontrados`
+	async function onJobDone(job_id, count) {
+	  $('log-spinner').classList.add('hidden');
+	  $('log-title').textContent = currentMode === 'economic_activity'
+	    ? `Listo — ${count} negocios clasificados`
+	    : currentMode === 'maps'
+	    ? `Listo — ${count} lugares encontrados`
     : `Listo — ${count} resultados únicos encontrados`;
   appendLog(`✓ Completado: ${count} registros`, 'done');
 
   // Obtener resultados
-  const res = await fetch(`/api/results/${job_id}`);
-  const data = await res.json();
-  allResults = data.results || [];
-  currentMode = ['prices', 'maps'].includes(data.kind) ? data.kind : currentMode;
+	  const res = await fetch(`/api/results/${job_id}`);
+	  const data = await res.json();
+	  allResults = data.results || [];
+	  currentMode = ['economic_activity', 'maps'].includes(data.kind) ? data.kind : currentMode;
 
   // Links de descarga
   $('dl-json').href = `/api/download/${job_id}/json`;
@@ -937,20 +954,22 @@ async function onJobDone(job_id, count) {
 }
 
 // ── Stats ────────────────────────────────────────────────────
-function updateStats() {
-  const r = allResults;
-  $('st-total').textContent = r.length;
-  if (currentMode === 'prices') {
-    const found = r.filter(x => x.precio !== null && x.precio !== undefined);
-    const best = found.length ? Math.min(...found.map(x => Number(x.precio))) : 0;
-    $('st-tel').textContent = found.length;
-    $('st-web').textContent = found.length ? `$${best.toFixed(2)}` : '—';
-    $('st-wa').textContent = r.filter(x => x.fuente === 'error' || x.fuente === 'bloqueado').length;
-    $('st-lbl-2').textContent = 'Con precio';
-    $('st-lbl-3').textContent = 'Mejor precio';
-    $('st-lbl-4').textContent = 'Sin acceso';
-  } else if (currentMode === 'maps') {
-    const ratings = r.map(x => x.calificacion).filter(x => x !== null && x !== undefined).map(Number);
+	function updateStats() {
+	  const r = allResults;
+	  if (currentMode === 'economic_activity') {
+	    const totalBusinesses = r.reduce((sum, row) => sum + Number(row.conteo || 0), 0);
+	    const withPhone = r.reduce((sum, row) => sum + Number(row.con_telefono || 0), 0);
+	    const withWeb = r.reduce((sum, row) => sum + Number(row.con_sitio_web || 0), 0);
+	    $('st-total').textContent = totalBusinesses;
+	    $('st-tel').textContent = r.filter(x => Number(x.conteo || 0) > 0).length;
+	    $('st-web').textContent = withPhone;
+	    $('st-wa').textContent = withWeb;
+	    $('st-lbl-2').textContent = 'Giros activos';
+	    $('st-lbl-3').textContent = 'Con teléfono';
+	    $('st-lbl-4').textContent = 'Con sitio web';
+	  } else if (currentMode === 'maps') {
+	    $('st-total').textContent = r.length;
+	    const ratings = r.map(x => x.calificacion).filter(x => x !== null && x !== undefined).map(Number);
     const avg = ratings.length
       ? (ratings.reduce((sum, val) => sum + val, 0) / ratings.length).toFixed(1)
       : '—';
@@ -958,10 +977,11 @@ function updateStats() {
     $('st-web').textContent = avg;
     $('st-wa').textContent = r.filter(x => x.sitio_web).length;
     $('st-lbl-2').textContent = 'Con teléfono';
-    $('st-lbl-3').textContent = 'Rating prom.';
-    $('st-lbl-4').textContent = 'Con sitio web';
-  } else {
-    $('st-tel').textContent   = r.filter(x => x.telefono).length;
+	    $('st-lbl-3').textContent = 'Rating prom.';
+	    $('st-lbl-4').textContent = 'Con sitio web';
+	  } else {
+	    $('st-total').textContent = r.length;
+	    $('st-tel').textContent   = r.filter(x => x.telefono).length;
     $('st-web').textContent   = r.filter(x => x.sitio_web).length;
     $('st-wa').textContent    = r.filter(x => x.whatsapp).length;
     $('st-lbl-2').textContent = 'Con teléfono';
@@ -972,19 +992,20 @@ function updateStats() {
 }
 
 // ── Tabla ────────────────────────────────────────────────────
-function renderHeader() {
-  const head = $('results-head');
-  if (currentMode === 'prices') {
-    head.innerHTML = `
-      <tr>
-        <th data-col="tienda">Tienda <i class="sort-icon">↕</i></th>
-        <th data-col="producto">Producto encontrado <i class="sort-icon">↕</i></th>
-        <th data-col="precio">Precio <i class="sort-icon">↕</i></th>
-        <th data-col="estado">Estado <i class="sort-icon">↕</i></th>
-        <th data-col="url">URL <i class="sort-icon">↕</i></th>
-      </tr>
-    `;
-    $('filter-input').placeholder = 'Filtrar por tienda, producto, precio o estado…';
+	function renderHeader() {
+	  const head = $('results-head');
+	  if (currentMode === 'economic_activity') {
+	    head.innerHTML = `
+	      <tr>
+	        <th data-col="giro">Giro <i class="sort-icon">↕</i></th>
+	        <th data-col="conteo">Negocios <i class="sort-icon">↕</i></th>
+	        <th data-col="con_telefono">Con teléfono <i class="sort-icon">↕</i></th>
+	        <th data-col="con_sitio_web">Con sitio web <i class="sort-icon">↕</i></th>
+	        <th data-col="categorias_detectadas">Categorías detectadas <i class="sort-icon">↕</i></th>
+	        <th data-col="negocios">Listado <i class="sort-icon">↕</i></th>
+	      </tr>
+	    `;
+	    $('filter-input').placeholder = 'Filtrar por giro, categoría o negocio…';
   } else if (currentMode === 'maps') {
     head.innerHTML = `
       <tr>
@@ -1029,31 +1050,25 @@ function renderTable(rows) {
       ? `${rows.length} registros`
       : `${filtered.length} de ${rows.length} registros`;
 
-  const tbody = $('results-body');
-  if (!filtered.length) {
-    const colspan = currentMode === 'maps' ? 9 : currentMode === 'prices' ? 5 : 6;
-    tbody.innerHTML = `<tr><td class="no-rows" colspan="${colspan}">Sin resultados para este filtro</td></tr>`;
-    return;
-  }
+	  const tbody = $('results-body');
+	  if (!filtered.length) {
+	    const colspan = currentMode === 'maps' ? 9 : currentMode === 'economic_activity' ? 6 : 6;
+	    tbody.innerHTML = `<tr><td class="no-rows" colspan="${colspan}">Sin resultados para este filtro</td></tr>`;
+	    return;
+	  }
 
-  if (currentMode === 'prices') {
-    const foundPrices = filtered
-      .map(r => r.precio)
-      .filter(v => v !== null && v !== undefined)
-      .map(Number);
-    const bestPrice = foundPrices.length ? Math.min(...foundPrices) : null;
-    tbody.innerHTML = filtered.map(r => `
-      <tr>
-        <td class="td-name">${esc(r.tienda)}</td>
-        <td>${esc(r.producto || '—')}</td>
-        <td class="td-phone">${renderPrice(r, bestPrice)}</td>
-        <td>${r.estado ? `<span class="status-pill">${esc(r.estado)}</span>` : ''}</td>
-        <td class="td-web">${r.url
-          ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${shortUrl(r.url)}</a>`
-          : ''}</td>
-      </tr>
-    `).join('');
-    return;
+	  if (currentMode === 'economic_activity') {
+	    tbody.innerHTML = filtered.map(r => `
+	      <tr>
+	        <td class="td-name">${esc(r.giro || '—')}</td>
+	        <td class="td-phone">${esc(r.conteo || 0)}</td>
+	        <td class="td-phone">${esc(r.con_telefono || 0)}</td>
+	        <td class="td-phone">${esc(r.con_sitio_web || 0)}</td>
+	        <td>${esc(r.categorias_detectadas || '—')}</td>
+	        <td class="td-summary">${esc(r.negocios || '—')}</td>
+	      </tr>
+	    `).join('');
+	    return;
   }
 
   if (currentMode === 'maps') {
@@ -1134,10 +1149,10 @@ function bindSortHeaders() {
   });
 }
 
-function sortedResults() {
-  if (!sortCol) return allResults;
-  return [...allResults].sort((a, b) => {
-    if (['precio', 'calificacion', 'resenas'].includes(sortCol)) {
+	function sortedResults() {
+	  if (!sortCol) return allResults;
+	  return [...allResults].sort((a, b) => {
+	    if (['precio', 'calificacion', 'resenas', 'conteo', 'con_telefono', 'con_sitio_web'].includes(sortCol)) {
       const va = a[sortCol] === null || a[sortCol] === undefined ? Number.POSITIVE_INFINITY : Number(a[sortCol]);
       const vb = b[sortCol] === null || b[sortCol] === undefined ? Number.POSITIVE_INFINITY : Number(b[sortCol]);
       return sortAsc ? va - vb : vb - va;
@@ -1159,18 +1174,17 @@ function renderLider(r) {
   return esc(nombre) + badge;
 }
 
-function renderPrice(row, bestPrice) {
-  if (row.precio === null || row.precio === undefined) return '—';
-  const price = Number(row.precio);
-  const text = row.precio_texto || `$${price.toFixed(2)}`;
-  if (bestPrice !== null && price === bestPrice) {
-    return `<span class="best-price">${esc(text)}</span>`;
-  }
-  return esc(text);
-}
+	function getActivityFilters() {
+	  return {
+	    radius_km: $('inp-activity-radius').value.trim(),
+	    per_giro_limit: $('inp-activity-limit').value.trim() || '25',
+	    giros: $('inp-activity-giros').value.trim(),
+	    use_browser: $('inp-activity-browser').checked,
+	  };
+	}
 
-function getMapsFilters() {
-  return {
+	function getMapsFilters() {
+	  return {
     radius_km: $('inp-maps-radius').value.trim(),
     max_results: $('inp-maps-limit').value.trim() || '25',
     min_rating: $('inp-maps-rating').value.trim(),

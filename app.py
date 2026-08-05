@@ -21,6 +21,7 @@ from bson import ObjectId
 import scraper as sc
 import price_scraper as ps
 import maps_scraper as ms
+import economic_activity as ea
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cambia-esto-en-produccion')
@@ -173,6 +174,27 @@ def run_maps_job(job_id: str, query: str, location: str, filters: dict):
 
     try:
         results = ms.scrape_maps(query, location, filters=filters, progress=progress)
+        with jobs_lock:
+            jobs[job_id]["results"] = results
+            jobs[job_id]["status"] = "done"
+    except Exception as e:
+        with jobs_lock:
+            jobs[job_id]["status"] = "error"
+            jobs[job_id]["error"] = str(e)
+        log_q.put(f"ERROR:{e}")
+    finally:
+        log_q.put(None)
+
+
+def run_economic_activity_job(job_id: str, location: str, filters: dict):
+    job = jobs[job_id]
+    log_q: queue.Queue = job["log"]
+
+    def progress(msg: str):
+        log_q.put(msg)
+
+    try:
+        results = ea.scan_activity(location, filters=filters, progress=progress)
         with jobs_lock:
             jobs[job_id]["results"] = results
             jobs[job_id]["status"] = "done"
@@ -405,6 +427,37 @@ def start_compare():
     return jsonify({"job_id": job_id})
 
 
+@app.route("/api/economic-activity", methods=["POST"])
+@login_required
+def start_economic_activity():
+    data = request.get_json()
+    location = (data.get("location") or "").strip()
+    filters = data.get("filters") or {}
+
+    if not location:
+        return jsonify({"error": "Falta parámetro location"}), 400
+
+    job_id = str(uuid.uuid4())
+    with jobs_lock:
+        jobs[job_id] = {
+            "status": "running",
+            "kind": "economic_activity",
+            "query": "actividad economica",
+            "location": location,
+            "filters": filters,
+            "results": [],
+            "log": queue.Queue(),
+        }
+
+    log_audit('search', {'mode': 'economic_activity', 'location': location, 'filters': filters})
+
+    thread = threading.Thread(
+        target=run_economic_activity_job, args=(job_id, location, filters), daemon=True
+    )
+    thread.start()
+    return jsonify({"job_id": job_id})
+
+
 @app.route("/api/progress/<job_id>")
 @login_required
 def progress_stream(job_id: str):
@@ -428,6 +481,8 @@ def progress_stream(job_id: str):
         results = jobs[job_id].get("results", [])
         if jobs[job_id].get("kind") == "prices":
             count = len([item for item in results if item.get("precio") is not None])
+        elif jobs[job_id].get("kind") == "economic_activity":
+            count = sum(int(item.get("conteo") or 0) for item in results)
         else:
             count = len(results)
         yield f"data: {json.dumps({'__status__': status, '__count__': count})}\n\n"
@@ -468,6 +523,8 @@ def download(job_id: str, fmt: str):
     results = job["results"]
     if job.get("kind") == "maps":
         slug = f"google_maps_{job['query']}_{job['location']}".replace(" ", "_")
+    elif job.get("kind") == "economic_activity":
+        slug = f"actividad_economica_{job['location']}".replace(" ", "_")
     elif job.get("kind") == "prices":
         slug = f"comparador_{job['query']}".replace(" ", "_")
     else:
@@ -494,6 +551,11 @@ def download(job_id: str, fmt: str):
             results = [
                 {**r, "opiniones_muestra": " | ".join(r.get("opiniones_muestra") or [])}
                 for r in results
+            ]
+        elif job.get("kind") == "economic_activity":
+            fields = [
+                "giro", "conteo", "con_telefono", "con_sitio_web",
+                "categorias_detectadas", "negocios", "estado"
             ]
         elif job.get("kind") == "prices":
             fields = ["tienda", "producto", "precio", "precio_texto", "url", "fuente", "estado"]
