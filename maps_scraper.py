@@ -18,13 +18,21 @@ import linkedin_enricher as le
 
 # ── Claude AI para resumen de opiniones ─────────────────────
 _anthropic_client = None
-try:
-    import anthropic as _anthropic_mod
+
+
+def get_anthropic_client():
+    global _anthropic_client
+    if _anthropic_client is not None:
+        return _anthropic_client
     _api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-    if _api_key:
+    if not _api_key:
+        return None
+    try:
+        import anthropic as _anthropic_mod
         _anthropic_client = _anthropic_mod.Anthropic(api_key=_api_key)
-except Exception:
-    pass
+    except Exception:
+        _anthropic_client = None
+    return _anthropic_client
 
 try:
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -243,7 +251,8 @@ def extract_reviews_from_page(page, max_reviews: int = 8) -> list[str]:
 
 
 def summarize_with_ai(business_name: str, reviews: list[str]) -> str:
-    if not _anthropic_client or not reviews:
+    client = get_anthropic_client()
+    if not client or not reviews:
         return ""
     reviews_text = "\n".join(f"- {r}" for r in reviews)
     prompt = (
@@ -254,7 +263,7 @@ def summarize_with_ai(business_name: str, reviews: list[str]) -> str:
         f"Responde SOLO con el resumen en español, sin encabezados ni listas."
     )
     try:
-        msg = _anthropic_client.messages.create(
+        msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=180,
             messages=[{"role": "user", "content": prompt}],

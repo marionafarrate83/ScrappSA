@@ -11,7 +11,7 @@ Uso automatizado:
 
 Credenciales por defecto del seed:
     usuario: Admin
-    password: Alfanumerico$2026
+    password:   
 """
 
 import argparse

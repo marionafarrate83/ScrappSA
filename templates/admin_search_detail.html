@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScrappSA — Búsqueda guardada</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --yellow: #f5c800;
+      --yellow-dark: #d4ac00;
+      --yellow-light: #fffbe6;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --green: #16a34a;
+      --red: #dc2626;
+      --blue: #2563eb;
+      --radius: 10px;
+      --shadow: 0 2px 16px rgba(0,0,0,.09);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--gray-100); color: var(--gray-900); min-height: 100vh; }
+    header { background: var(--yellow); padding: 0 32px; height: 58px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    header h1 { font-size: 1.15rem; font-weight: 700; }
+    .header-user { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .btn-header { font-size: .82rem; font-weight: 600; color: var(--gray-700); text-decoration: none; padding: 5px 12px; border: 1.5px solid var(--gray-700); border-radius: 7px; }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 28px 32px; }
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .stat, .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .stat { padding: 14px 16px; }
+    .stat .label { font-size: .72rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+    .stat .value { margin-top: 4px; font-size: 1rem; font-weight: 800; color: var(--gray-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card { overflow: hidden; margin-bottom: 18px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--gray-100); }
+    .card-header h2 { font-size: .95rem; font-weight: 800; color: var(--gray-700); text-transform: uppercase; letter-spacing: .04em; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    thead tr { background: var(--yellow-light); }
+    th { padding: 10px 12px; text-align: left; font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--gray-700); white-space: nowrap; }
+    td { padding: 10px 12px; border-top: 1px solid var(--gray-100); vertical-align: top; }
+    tbody tr:hover { background: var(--gray-50); }
+    .td-name { font-weight: 800; min-width: 180px; }
+    .td-phone { white-space: nowrap; font-weight: 700; color: var(--gray-700); }
+    .td-muted { color: var(--gray-500); max-width: 280px; }
+    .pill { display: inline-flex; align-items: center; border-radius: 5px; padding: 2px 8px; font-size: .75rem; font-weight: 800; }
+    .pill-green { background: #dcfce7; color: #15803d; }
+    .pill-gray { background: var(--gray-100); color: var(--gray-500); }
+    .pill-red { background: #fee2e2; color: #b91c1c; }
+    .btn { padding: 8px 16px; border-radius: 7px; font-size: .85rem; font-weight: 700; cursor: pointer; border: none; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-primary { background: var(--yellow); color: var(--gray-900); }
+    .btn-secondary { background: #eff6ff; color: var(--blue); border: 1.5px solid var(--blue); }
+    .btn-danger { background: #fef2f2; color: var(--red); border: 1.5px solid var(--red); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 18px 20px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    label { font-size: .78rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; letter-spacing: .04em; }
+    input, textarea, select { width: 100%; padding: 9px 11px; border: 1.5px solid var(--gray-200); border-radius: 8px; font: inherit; outline: none; }
+    textarea { min-height: 96px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: var(--yellow-dark); }
+    .help { color: var(--gray-500); font-size: .8rem; line-height: 1.35; }
+    .actions { padding: 0 20px 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    @media (max-width: 900px) {
+      .summary, .form-grid { grid-template-columns: 1fr; }
+      .wrap { padding: 18px 14px; }
+      table { font-size: .8rem; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>ScrappSA — Búsqueda guardada</h1>
+  <div class="header-user">
+    <span>{{ username }}</span>
+    <a href="/admin?tab=searches" class="btn-header">← Búsquedas</a>
+    <a href="/" class="btn-header">App</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="summary">
+    <div class="stat"><div class="label">Tipo</div><div class="value">{{ entry.kind }}</div></div>
+    <div class="stat"><div class="label">Búsqueda</div><div class="value" title="{{ entry.details_fmt }}">{{ entry.details_fmt or '—' }}</div></div>
+    <div class="stat"><div class="label">Fecha</div><div class="value">{{ entry.completed_str }}</div></div>
+    <div class="stat"><div class="label">Resultados</div><div class="value">{{ entry.result_count or contacts|length }}</div></div>
+  </section>
+
+  <form method="POST" action="/admin/searches/{{ entry._id }}/whatsapp/send">
+    <section class="card">
+      <div class="card-header">
+        <h2>Contactos detectados</h2>
+        <div>
+          <button class="btn btn-secondary" type="button" onclick="selectAll(true)">Seleccionar todos con WhatsApp</button>
+          <button class="btn btn-danger" type="button" onclick="selectAll(false)">Limpiar</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>WhatsApp</th>
+            <th>Categoría</th>
+            <th>Dirección</th>
+            <th>Sitio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for contact in contacts %}
+          <tr>
+            <td>
+              <input type="checkbox" name="selected" value="{{ contact.index }}" data-can-send="{{ '1' if contact.whatsapp_phone else '0' }}" {% if not contact.whatsapp_phone %}disabled{% endif %} />
+            </td>
+            <td class="td-name">{{ contact.nombre }}</td>
+            <td class="td-phone">{{ contact.telefono or '—' }}</td>
+            <td>
+              {% if contact.whatsapp_phone %}
+              <span class="pill pill-green">{{ contact.whatsapp_phone }}</span>
+              {% else %}
+              <span class="pill pill-gray">Sin teléfono válido</span>
+              {% endif %}
+            </td>
+            <td class="td-muted">{{ contact.categoria or '—' }}</td>
+            <td class="td-muted">{{ contact.direccion or '—' }}</td>
+            <td class="td-muted">
+              {% if contact.sitio_web %}
+              <a href="{{ contact.sitio_web }}" target="_blank" rel="noopener">{{ contact.sitio_web }}</a>
+              {% else %}
+              —
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not contacts %}
+          <tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:28px">No hay resultados guardados.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Enviar WhatsApp con SendPulse</h2>
+        {% if sendpulse_ready %}
+        <span class="pill pill-green">Configurado</span>
+        {% else %}
+        <span class="pill pill-red">Faltan credenciales</span>
+        {% endif %}
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Modo</label>
+          <select name="mode" id="mode">
+            <option value="template">Plantilla WABA</option>
+            <option value="text">Texto libre</option>
+          </select>
+          <div class="help">Para iniciar conversación normalmente usa plantilla aprobada por WhatsApp.</div>
+        </div>
+        <div class="field">
+          <label>Nombre de plantilla</label>
+          <input type="text" name="template_name" value="{{ default_template }}" placeholder="nombre_de_tu_template" />
+        </div>
+        <div class="field">
+          <label>Idioma plantilla</label>
+          <input type="text" name="template_lang" value="{{ default_template_lang }}" placeholder="es_MX" />
+        </div>
+        <div class="field">
+          <label>Variables disponibles</label>
+          <div class="help">{{ '{{nombre}}' }}, {{ '{{telefono}}' }}, {{ '{{categoria}}' }}, {{ '{{direccion}}' }}, {{ '{{sitio_web}}' }}, {{ '{{query}}' }}, {{ '{{location}}' }}</div>
+        </div>
+        <div class="field full">
+          <label>Mensaje de texto libre</label>
+          <textarea name="message">{{ default_message }}</textarea>
+          <div class="help">SendPulse limita texto libre según las reglas de sesión de WhatsApp. Si falla, usa una plantilla WABA aprobada.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" {% if not sendpulse_ready %}disabled{% endif %}>Enviar a seleccionados</button>
+        <a class="btn btn-secondary" href="/admin/searches/{{ entry._id }}/json" target="_blank" rel="noopener">Ver JSON crudo</a>
+      </div>
+    </section>
+  </form>
+</main>
+
+<script>
+function selectAll(value) {
+  document.querySelectorAll('input[name="selected"]').forEach(box => {
+    if (box.dataset.canSend === '1') box.checked = value;
+  });
+}
+</script>
+</body>
+</html>

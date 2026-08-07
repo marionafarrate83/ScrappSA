@@ -17,13 +17,21 @@ from bs4 import BeautifulSoup
 
 # ── Claude AI para extracción de líderes ─────────────────────
 _anthropic_client = None
-try:
-    import anthropic as _anthropic_mod
+
+
+def get_anthropic_client():
+    global _anthropic_client
+    if _anthropic_client is not None:
+        return _anthropic_client
     _api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-    if _api_key:
+    if not _api_key:
+        return None
+    try:
+        import anthropic as _anthropic_mod
         _anthropic_client = _anthropic_mod.Anthropic(api_key=_api_key)
-except Exception:
-    pass
+    except Exception:
+        _anthropic_client = None
+    return _anthropic_client
 
 
 HEADERS = {
@@ -140,7 +148,8 @@ def best_linkedin_url(results: list[dict], kind: str) -> str:
 
 
 def _infer_leader_with_ai(company_name: str, all_results: list[dict]) -> Optional[dict]:
-    if not _anthropic_client or not all_results:
+    client = get_anthropic_client()
+    if not client or not all_results:
         return None
 
     results_text = "\n".join(
@@ -159,7 +168,7 @@ def _infer_leader_with_ai(company_name: str, all_results: list[dict]) -> Optiona
     )
 
     try:
-        msg = _anthropic_client.messages.create(
+        msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=220,
             messages=[{"role": "user", "content": prompt}],

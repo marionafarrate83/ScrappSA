@@ -6,6 +6,8 @@ import queue
 import io
 import os
 import functools
+import re
+import time
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -17,6 +19,7 @@ from flask import (
 from pymongo import MongoClient, DESCENDING
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson import ObjectId
+import requests
 
 import scraper as sc
 import price_scraper as ps
@@ -27,17 +30,47 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cambia-esto-en-produccion')
 
 # ── MongoDB ─────────────────────────────────────────────────
-_mongo = MongoClient(os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/'))
-_db = _mongo['scrappsa']
-users_col = _db['users']
-audit_col = _db['audit_logs']
+_mongo_client = None
 
-try:
-    users_col.create_index('username', unique=True)
-    audit_col.create_index([('timestamp', DESCENDING)])
-    audit_col.create_index('user')
-except Exception:
-    pass
+
+def get_db():
+    global _mongo_client
+    if _mongo_client is None:
+        _mongo_client = MongoClient(
+            os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/'),
+            serverSelectionTimeoutMS=5000,
+        )
+    return _mongo_client['scrappsa']
+
+
+class LazyCollection:
+    def __init__(self, name: str):
+        self.name = name
+
+    def _collection(self):
+        return get_db()[self.name]
+
+    def __getattr__(self, attr):
+        return getattr(self._collection(), attr)
+
+
+users_col = LazyCollection('users')
+audit_col = LazyCollection('audit_logs')
+saved_searches_col = LazyCollection('saved_searches')
+
+def ensure_indexes():
+    try:
+        users_col.create_index('username', unique=True)
+        audit_col.create_index([('timestamp', DESCENDING)])
+        audit_col.create_index('user')
+        saved_searches_col.create_index([('created_at', DESCENDING)])
+        saved_searches_col.create_index('user')
+        saved_searches_col.create_index('kind')
+    except Exception:
+        pass
+
+
+threading.Thread(target=ensure_indexes, daemon=True).start()
 
 # ── Jobs ─────────────────────────────────────────────────────
 jobs: dict = {}
@@ -80,6 +113,192 @@ def log_audit(action, details=None):
         })
     except Exception:
         pass
+
+
+def result_count_for_job(job: dict) -> int:
+    results = job.get("results", [])
+    if job.get("kind") == "prices":
+        return len([item for item in results if item.get("precio") is not None])
+    if job.get("kind") == "economic_activity":
+        return sum(int(item.get("conteo") or 0) for item in results)
+    return len(results)
+
+
+def persist_search_job(job_id: str):
+    try:
+        job = jobs.get(job_id)
+        if not job or job.get("persisted_search_id"):
+            return
+        results = job.get("results", [])
+        doc = {
+            "job_id": job_id,
+            "kind": job.get("kind", "directory"),
+            "query": job.get("query", ""),
+            "location": job.get("location", ""),
+            "filters": job.get("filters", {}),
+            "status": job.get("status", ""),
+            "error": job.get("error", ""),
+            "result_count": result_count_for_job(job),
+            "results": results,
+            "user": job.get("user", ""),
+            "user_id": job.get("user_id", ""),
+            "created_at": job.get("created_at") or datetime.utcnow(),
+            "completed_at": datetime.utcnow(),
+        }
+        inserted = saved_searches_col.insert_one(doc)
+        job["persisted_search_id"] = str(inserted.inserted_id)
+    except Exception:
+        pass
+
+
+_sendpulse_token = {"access_token": "", "expires_at": 0}
+
+
+def sendpulse_configured() -> bool:
+    return bool(
+        (os.environ.get("SENDPULSE_API_ID") or os.environ.get("SP_API_ID"))
+        and (os.environ.get("SENDPULSE_API_SECRET") or os.environ.get("SP_API_SECRET"))
+        and os.environ.get("SENDPULSE_WHATSAPP_BOT_ID")
+    )
+
+
+def get_sendpulse_token() -> str:
+    now = time.time()
+    if _sendpulse_token["access_token"] and _sendpulse_token["expires_at"] > now + 60:
+        return _sendpulse_token["access_token"]
+
+    api_id = os.environ.get("SENDPULSE_API_ID") or os.environ.get("SP_API_ID")
+    api_secret = os.environ.get("SENDPULSE_API_SECRET") or os.environ.get("SP_API_SECRET")
+    if not api_id or not api_secret:
+        raise RuntimeError("Faltan SENDPULSE_API_ID/SENDPULSE_API_SECRET.")
+
+    response = requests.post(
+        "https://api.sendpulse.com/oauth/access_token",
+        json={
+            "grant_type": "client_credentials",
+            "client_id": api_id,
+            "client_secret": api_secret,
+        },
+        timeout=20,
+    )
+    response.raise_for_status()
+    data = response.json()
+    access_token = data.get("access_token")
+    if not access_token:
+        raise RuntimeError("SendPulse no devolvió access_token.")
+    _sendpulse_token["access_token"] = access_token
+    _sendpulse_token["expires_at"] = now + int(data.get("expires_in") or 3600)
+    return access_token
+
+
+def normalize_whatsapp_phone(value: str) -> str:
+    raw = (value or "").strip()
+    if raw.startswith("+"):
+        digits = re.sub(r"\D", "", raw)
+        return f"+{digits}" if digits else ""
+    digits = re.sub(r"\D", "", raw)
+    if not digits:
+        return ""
+    if len(digits) == 10:
+        return f"+52{digits}"
+    if len(digits) == 12 and digits.startswith("52"):
+        return f"+{digits}"
+    if len(digits) > 10 and not digits.startswith("00"):
+        return f"+{digits}"
+    return ""
+
+
+def extract_phone(value: str) -> str:
+    text = value or ""
+    match = re.search(r"(?:\+?\d[\d\s().-]{7,}\d)", text)
+    return match.group(0).strip() if match else ""
+
+
+def extract_search_contacts(entry: dict) -> list[dict]:
+    contacts = []
+    for index, item in enumerate(entry.get("results") or []):
+        phone = extract_phone(item.get("telefono") or item.get("phone") or "")
+        wa_phone = normalize_whatsapp_phone(phone)
+        contacts.append({
+            "index": index,
+            "nombre": item.get("nombre") or item.get("tienda") or item.get("giro") or "Sin nombre",
+            "telefono": phone,
+            "whatsapp_phone": wa_phone,
+            "email": item.get("email") or "",
+            "direccion": item.get("direccion") or "",
+            "sitio_web": item.get("sitio_web") or item.get("url") or "",
+            "categoria": item.get("categoria") or item.get("categorias_detectadas") or "",
+            "raw": item,
+        })
+    return contacts
+
+
+def render_message_template(template: str, contact: dict, entry: dict) -> str:
+    values = {
+        "nombre": contact.get("nombre", ""),
+        "telefono": contact.get("telefono", ""),
+        "categoria": contact.get("categoria", ""),
+        "direccion": contact.get("direccion", ""),
+        "sitio_web": contact.get("sitio_web", ""),
+        "query": entry.get("query", ""),
+        "location": entry.get("location", ""),
+    }
+    message = template or ""
+    for key, value in values.items():
+        message = message.replace("{{" + key + "}}", str(value or ""))
+    return message.strip()
+
+
+def sendpulse_send_text(phone: str, message: str) -> dict:
+    bot_id = os.environ.get("SENDPULSE_WHATSAPP_BOT_ID")
+    if not bot_id:
+        raise RuntimeError("Falta SENDPULSE_WHATSAPP_BOT_ID.")
+    token = get_sendpulse_token()
+    response = requests.post(
+        "https://api.sendpulse.com/whatsapp/contacts/sendByPhone",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "bot_id": bot_id,
+            "phone": phone,
+            "message": {
+                "type": "text",
+                "text": {"body": message[:1024]},
+            },
+        },
+        timeout=25,
+    )
+    return {"status_code": response.status_code, "body": response.json() if response.content else {}}
+
+
+def sendpulse_send_template(phone: str, template_name: str, language_code: str, parameters: list[str]) -> dict:
+    bot_id = os.environ.get("SENDPULSE_WHATSAPP_BOT_ID")
+    if not bot_id:
+        raise RuntimeError("Falta SENDPULSE_WHATSAPP_BOT_ID.")
+    token = get_sendpulse_token()
+    body_parameters = [{"type": "text", "text": str(value)} for value in parameters if str(value)]
+    payload = {
+        "bot_id": bot_id,
+        "phone": phone,
+        "template": {
+            "name": template_name,
+            "language": {
+                "policy": "deterministic",
+                "code": language_code,
+            },
+        },
+    }
+    if body_parameters:
+        payload["template"]["components"] = [{
+            "type": "body",
+            "parameters": body_parameters,
+        }]
+    response = requests.post(
+        "https://api.sendpulse.com/whatsapp/contacts/sendTemplateByPhone",
+        headers={"Authorization": f"Bearer {token}"},
+        json=payload,
+        timeout=25,
+    )
+    return {"status_code": response.status_code, "body": response.json() if response.content else {}}
 
 
 # ── Auth routes ──────────────────────────────────────────────
@@ -135,10 +354,12 @@ def run_scrape_job(job_id: str, query: str, location: str):
         with jobs_lock:
             jobs[job_id]["results"] = results
             jobs[job_id]["status"] = "done"
+        persist_search_job(job_id)
     except Exception as e:
         with jobs_lock:
             jobs[job_id]["status"] = "error"
             jobs[job_id]["error"] = str(e)
+        persist_search_job(job_id)
         log_q.put(f"ERROR:{e}")
     finally:
         log_q.put(None)
@@ -156,10 +377,12 @@ def run_price_job(job_id: str, query: str, use_browser: bool = False, include_go
         with jobs_lock:
             jobs[job_id]["results"] = results
             jobs[job_id]["status"] = "done"
+        persist_search_job(job_id)
     except Exception as e:
         with jobs_lock:
             jobs[job_id]["status"] = "error"
             jobs[job_id]["error"] = str(e)
+        persist_search_job(job_id)
         log_q.put(f"ERROR:{e}")
     finally:
         log_q.put(None)
@@ -177,10 +400,12 @@ def run_maps_job(job_id: str, query: str, location: str, filters: dict):
         with jobs_lock:
             jobs[job_id]["results"] = results
             jobs[job_id]["status"] = "done"
+        persist_search_job(job_id)
     except Exception as e:
         with jobs_lock:
             jobs[job_id]["status"] = "error"
             jobs[job_id]["error"] = str(e)
+        persist_search_job(job_id)
         log_q.put(f"ERROR:{e}")
     finally:
         log_q.put(None)
@@ -198,10 +423,12 @@ def run_economic_activity_job(job_id: str, location: str, filters: dict):
         with jobs_lock:
             jobs[job_id]["results"] = results
             jobs[job_id]["status"] = "done"
+        persist_search_job(job_id)
     except Exception as e:
         with jobs_lock:
             jobs[job_id]["status"] = "error"
             jobs[job_id]["error"] = str(e)
+        persist_search_job(job_id)
         log_q.put(f"ERROR:{e}")
     finally:
         log_q.put(None)
@@ -224,6 +451,16 @@ def _fmt_audit_details(entry):
     return ''
 
 
+def _fmt_search_details(entry):
+    parts = [entry.get('query', '')]
+    if entry.get('location'):
+        parts.append(f"en {entry['location']}")
+    filters = entry.get('filters') or {}
+    if filters.get('radius_km'):
+        parts.append(f"radio {filters['radius_km']} km")
+    return ' › '.join(p for p in parts if p)
+
+
 # ── Admin routes ─────────────────────────────────────────────
 @app.route('/admin')
 @admin_required
@@ -238,7 +475,10 @@ def admin_panel():
 
     filter_user = request.args.get('user', '')
     filter_action = request.args.get('action', '')
+    search_user = request.args.get('s_user', '')
+    search_kind = request.args.get('s_kind', '')
     page = max(1, int(request.args.get('page', 1) or 1))
+    search_page = max(1, int(request.args.get('search_page', 1) or 1))
     per_page = 50
     tab = request.args.get('tab', 'users')
 
@@ -256,6 +496,26 @@ def admin_panel():
         entry['ts_str'] = ts.strftime('%d/%m/%Y %H:%M:%S') if ts else '—'
         entry['details_fmt'] = _fmt_audit_details(entry)
 
+    search_q = {}
+    if search_user:
+        search_q['user'] = search_user
+    if search_kind:
+        search_q['kind'] = search_kind
+
+    total_searches = saved_searches_col.count_documents(search_q)
+    saved_searches = list(
+        saved_searches_col
+        .find(search_q, {'results': 0})
+        .sort('created_at', -1)
+        .skip((search_page - 1) * per_page)
+        .limit(per_page)
+    )
+    for item in saved_searches:
+        item['_id'] = str(item['_id'])
+        ts = item.get('completed_at') or item.get('created_at')
+        item['completed_str'] = ts.strftime('%d/%m/%Y %H:%M:%S') if ts else '—'
+        item['details_fmt'] = _fmt_search_details(item)
+
     return render_template('admin.html',
         username=session.get('username'),
         current_user_id=session.get('user_id'),
@@ -267,7 +527,163 @@ def admin_panel():
         pages=max(1, (total_logs + per_page - 1) // per_page),
         filter_user=filter_user,
         filter_action=filter_action,
+        search_user=search_user,
+        search_kind=search_kind,
+        saved_searches=saved_searches,
+        total_searches=total_searches,
+        search_page=search_page,
+        search_pages=max(1, (total_searches + per_page - 1) // per_page),
         user_list=[u['username'] for u in users],
+    )
+
+
+@app.route('/admin/searches/<search_id>/json')
+@admin_required
+def admin_search_json(search_id):
+    try:
+        entry = saved_searches_col.find_one({'_id': ObjectId(search_id)})
+    except Exception:
+        entry = None
+    if not entry:
+        return jsonify({'error': 'Búsqueda no encontrada'}), 404
+    entry['_id'] = str(entry['_id'])
+    content = json.dumps(entry, ensure_ascii=False, indent=2, default=str)
+    filename = f"busqueda_{entry.get('kind', 'search')}_{search_id}.json"
+    return Response(
+        content,
+        mimetype="application/json",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
+@app.route('/admin/searches/<search_id>')
+@admin_required
+def admin_search_detail(search_id):
+    try:
+        entry = saved_searches_col.find_one({'_id': ObjectId(search_id)})
+    except Exception:
+        entry = None
+    if not entry:
+        return jsonify({'error': 'Búsqueda no encontrada'}), 404
+
+    entry['_id'] = str(entry['_id'])
+    ts = entry.get('completed_at') or entry.get('created_at')
+    entry['completed_str'] = ts.strftime('%d/%m/%Y %H:%M:%S') if ts else '—'
+    entry['details_fmt'] = _fmt_search_details(entry)
+    contacts = extract_search_contacts(entry)
+    default_message = (
+        "Hola {{nombre}}, te contacto de Visoor. "
+        "Vimos tu negocio en {{location}} y nos gustaría compartirte una propuesta."
+    )
+    return render_template(
+        "admin_search_detail.html",
+        username=session.get('username'),
+        entry=entry,
+        contacts=contacts,
+        sendpulse_ready=sendpulse_configured(),
+        default_message=default_message,
+        default_template=os.environ.get("SENDPULSE_WHATSAPP_TEMPLATE_NAME", ""),
+        default_template_lang=os.environ.get("SENDPULSE_WHATSAPP_TEMPLATE_LANG", "es_MX"),
+    )
+
+
+@app.route('/admin/searches/<search_id>/whatsapp/send', methods=['POST'])
+@admin_required
+def admin_search_whatsapp_send(search_id):
+    try:
+        entry = saved_searches_col.find_one({'_id': ObjectId(search_id)})
+    except Exception:
+        entry = None
+    if not entry:
+        return jsonify({'error': 'Búsqueda no encontrada'}), 404
+    if not sendpulse_configured():
+        return jsonify({'error': 'Faltan credenciales SendPulse en variables de entorno.'}), 400
+
+    selected = request.form.getlist('selected')
+    mode = request.form.get('mode') or 'text'
+    message_template = request.form.get('message') or ''
+    template_name = (request.form.get('template_name') or os.environ.get("SENDPULSE_WHATSAPP_TEMPLATE_NAME") or '').strip()
+    language_code = (request.form.get('template_lang') or os.environ.get("SENDPULSE_WHATSAPP_TEMPLATE_LANG") or 'es_MX').strip()
+    contacts = extract_search_contacts(entry)
+
+    selected_indexes = set()
+    for value in selected:
+        try:
+            selected_indexes.add(int(value))
+        except ValueError:
+            pass
+    targets = [contact for contact in contacts if contact["index"] in selected_indexes and contact.get("whatsapp_phone")]
+    if not targets:
+        return jsonify({'error': 'Selecciona al menos un contacto con teléfono válido.'}), 400
+    if len(targets) > 25:
+        return jsonify({'error': 'Por seguridad, envía máximo 25 mensajes por lote.'}), 400
+    if mode == 'template' and not template_name:
+        return jsonify({'error': 'Falta el nombre de la plantilla WABA.'}), 400
+    if mode == 'text' and not message_template.strip():
+        return jsonify({'error': 'Escribe el mensaje a enviar.'}), 400
+
+    send_results = []
+    for contact in targets:
+        try:
+            if mode == 'template':
+                parameters = [
+                    contact.get('nombre', ''),
+                    entry.get('location', ''),
+                    contact.get('categoria', ''),
+                ]
+                result = sendpulse_send_template(
+                    contact["whatsapp_phone"],
+                    template_name,
+                    language_code,
+                    parameters,
+                )
+                rendered_message = f"template:{template_name}"
+            else:
+                rendered_message = render_message_template(message_template, contact, entry)
+                result = sendpulse_send_text(contact["whatsapp_phone"], rendered_message)
+            ok = 200 <= int(result.get("status_code", 0)) < 300
+            send_results.append({
+                "nombre": contact.get("nombre"),
+                "phone": contact.get("whatsapp_phone"),
+                "ok": ok,
+                "message": rendered_message,
+                "sendpulse": result,
+            })
+        except Exception as exc:
+            send_results.append({
+                "nombre": contact.get("nombre"),
+                "phone": contact.get("whatsapp_phone"),
+                "ok": False,
+                "message": str(exc),
+                "sendpulse": {},
+            })
+
+    try:
+        saved_searches_col.update_one(
+            {'_id': ObjectId(search_id)},
+            {'$push': {
+                'whatsapp_sends': {
+                    'sent_at': datetime.utcnow(),
+                    'user': session.get('username'),
+                    'mode': mode,
+                    'count': len(send_results),
+                    'results': send_results,
+                }
+            }}
+        )
+        log_audit('admin_whatsapp_send', {
+            'search_id': search_id,
+            'mode': mode,
+            'count': len(send_results),
+        })
+    except Exception:
+        pass
+
+    return render_template(
+        "admin_send_result.html",
+        username=session.get('username'),
+        search_id=search_id,
+        results=send_results,
     )
 
 
@@ -351,10 +767,15 @@ def start_scrape():
     with jobs_lock:
         jobs[job_id] = {
             "status": "running",
+            "kind": "directory",
             "query": query,
             "location": location,
+            "filters": {},
             "results": [],
             "log": queue.Queue(),
+            "user": session.get('username', ''),
+            "user_id": session.get('user_id', ''),
+            "created_at": datetime.utcnow(),
         }
 
     log_audit('search', {'mode': 'directory', 'query': query, 'location': location})
@@ -387,6 +808,9 @@ def start_maps():
             "filters": filters,
             "results": [],
             "log": queue.Queue(),
+            "user": session.get('username', ''),
+            "user_id": session.get('user_id', ''),
+            "created_at": datetime.utcnow(),
         }
 
     log_audit('search', {'mode': 'maps', 'query': query, 'location': location, 'filters': filters})
@@ -416,8 +840,15 @@ def start_compare():
             "kind": "prices",
             "query": query,
             "location": "",
+            "filters": {
+                "use_browser": use_browser,
+                "include_google_shopping": include_google_shopping,
+            },
             "results": [],
             "log": queue.Queue(),
+            "user": session.get('username', ''),
+            "user_id": session.get('user_id', ''),
+            "created_at": datetime.utcnow(),
         }
 
     log_audit('search', {'mode': 'prices', 'query': query, 'use_browser': use_browser, 'google_shopping': include_google_shopping})
@@ -447,6 +878,9 @@ def start_economic_activity():
             "filters": filters,
             "results": [],
             "log": queue.Queue(),
+            "user": session.get('username', ''),
+            "user_id": session.get('user_id', ''),
+            "created_at": datetime.utcnow(),
         }
 
     log_audit('search', {'mode': 'economic_activity', 'location': location, 'filters': filters})
@@ -576,4 +1010,5 @@ def download(job_id: str, fmt: str):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", debug=True, port=port, threaded=True)
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", debug=debug, port=port, threaded=True, use_reloader=False)

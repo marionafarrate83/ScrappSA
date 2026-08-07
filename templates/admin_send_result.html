@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScrappSA — Resultado WhatsApp</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --yellow:#f5c800; --gray-100:#f3f4f6; --gray-500:#6b7280; --gray-700:#374151; --gray-900:#111827; --green:#16a34a; --red:#dc2626; --blue:#2563eb; --shadow:0 2px 16px rgba(0,0,0,.09); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--gray-100); color: var(--gray-900); min-height: 100vh; }
+    header { background: var(--yellow); padding: 0 32px; height: 58px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    header h1 { font-size: 1.15rem; }
+    a { color: var(--blue); font-weight: 700; text-decoration: none; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 32px; }
+    .card { background:#fff; border-radius:10px; box-shadow:var(--shadow); overflow:hidden; }
+    .card-header { padding:16px 20px; border-bottom:1px solid #f3f4f6; display:flex; justify-content:space-between; align-items:center; }
+    table { width:100%; border-collapse:collapse; font-size:.86rem; }
+    th { background:#fffbe6; padding:10px 12px; text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-700); }
+    td { padding:10px 12px; border-top:1px solid #f3f4f6; vertical-align:top; }
+    pre { max-width:440px; white-space:pre-wrap; word-break:break-word; color:var(--gray-500); font-size:.78rem; }
+    .pill { display:inline-flex; border-radius:5px; padding:2px 8px; font-size:.75rem; font-weight:800; }
+    .pill-green { background:#dcfce7; color:#15803d; }
+    .pill-red { background:#fee2e2; color:#b91c1c; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Resultado de envío WhatsApp</h1>
+  <div>
+    <span>{{ username }}</span>
+    <a href="/admin/searches/{{ search_id }}" style="margin-left:14px">← Volver</a>
+  </div>
+</header>
+<main class="wrap">
+  <section class="card">
+    <div class="card-header">
+      <strong>{{ results|length }} intento(s)</strong>
+      <a href="/admin?tab=searches">Búsquedas</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Estado</th>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Mensaje</th>
+          <th>Respuesta SendPulse</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in results %}
+        <tr>
+          <td>
+            {% if item.ok %}
+            <span class="pill pill-green">Enviado</span>
+            {% else %}
+            <span class="pill pill-red">Error</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ item.nombre }}</strong></td>
+          <td>{{ item.phone }}</td>
+          <td>{{ item.message }}</td>
+          <td><pre>{{ item.sendpulse }}</pre></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</main>
+</body>
+</html>

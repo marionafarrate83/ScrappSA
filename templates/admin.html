@@ -302,14 +302,17 @@
 <div class="admin-wrap">
 
   <!-- Tabs -->
-  <div class="tab-bar">
-    <button class="tab-btn {% if tab == 'users' %}active{% endif %}" data-panel="panel-users">
-      Usuarios ({{ users|length }})
-    </button>
-    <button class="tab-btn {% if tab == 'audit' %}active{% endif %}" data-panel="panel-audit">
-      Auditoría ({{ total_logs }})
-    </button>
-  </div>
+	  <div class="tab-bar">
+	    <button class="tab-btn {% if tab == 'users' %}active{% endif %}" data-panel="panel-users">
+	      Usuarios ({{ users|length }})
+	    </button>
+	    <button class="tab-btn {% if tab == 'audit' %}active{% endif %}" data-panel="panel-audit">
+	      Auditoría ({{ total_logs }})
+	    </button>
+	    <button class="tab-btn {% if tab == 'searches' %}active{% endif %}" data-panel="panel-searches">
+	      Búsquedas ({{ total_searches }})
+	    </button>
+	  </div>
 
   <!-- ── Panel: Usuarios ── -->
   <div id="panel-users" {% if tab != 'users' %}class="hidden"{% endif %}>
@@ -458,10 +461,104 @@
         {% endif %}
       </div>
       {% endif %}
-    </div>
-  </div>
+	    </div>
+	  </div>
 
-</div>
+	  <!-- ── Panel: Búsquedas guardadas ── -->
+	  <div id="panel-searches" {% if tab != 'searches' %}class="hidden"{% endif %}>
+	    <div class="card">
+	      <form method="GET" action="/admin" class="filter-form">
+	        <input type="hidden" name="tab" value="searches" />
+	        <select name="s_user">
+	          <option value="">Todos los usuarios</option>
+	          {% for uname in user_list %}
+	          <option value="{{ uname }}" {% if uname == search_user %}selected{% endif %}>{{ uname }}</option>
+	          {% endfor %}
+	        </select>
+	        <select name="s_kind">
+	          <option value="">Todos los tipos</option>
+	          <option value="directory" {% if search_kind == 'directory' %}selected{% endif %}>Directorio</option>
+	          <option value="maps" {% if search_kind == 'maps' %}selected{% endif %}>Maps</option>
+	          <option value="economic_activity" {% if search_kind == 'economic_activity' %}selected{% endif %}>Actividad económica</option>
+	          <option value="prices" {% if search_kind == 'prices' %}selected{% endif %}>Precios</option>
+	        </select>
+	        <button type="submit" class="btn btn-primary" style="padding:7px 16px">Filtrar</button>
+	        {% if search_user or search_kind %}
+	        <a href="/admin?tab=searches" style="font-size:.82rem;color:var(--gray-500);text-decoration:none">✕ Limpiar</a>
+	        {% endif %}
+	        <span class="filter-info">{{ total_searches }} búsquedas</span>
+	      </form>
+
+	      <table>
+	        <thead>
+	          <tr>
+	            <th>Fecha / Hora</th>
+	            <th>Usuario</th>
+	            <th>Tipo</th>
+	            <th>Búsqueda</th>
+	            <th>Estado</th>
+	            <th>Resultados</th>
+	            <th>Acciones</th>
+	          </tr>
+	        </thead>
+	        <tbody>
+	          {% for item in saved_searches %}
+	          <tr>
+	            <td style="font-size:.82rem;white-space:nowrap;color:var(--gray-500)">{{ item.completed_str }}</td>
+	            <td><strong>{{ item.user or '—' }}</strong></td>
+	            <td>
+	              {% if item.kind == 'maps' %}
+	              <span class="pill pill-blue">Maps</span>
+	              {% elif item.kind == 'economic_activity' %}
+	              <span class="pill pill-green">Actividad</span>
+	              {% elif item.kind == 'directory' %}
+	              <span class="pill pill-yellow">Directorio</span>
+	              {% elif item.kind == 'prices' %}
+	              <span class="pill pill-orange">Precios</span>
+	              {% else %}
+	              <span class="pill pill-gray">{{ item.kind or '—' }}</span>
+	              {% endif %}
+	            </td>
+	            <td class="td-details" title="{{ item.details_fmt }}">{{ item.details_fmt or '—' }}</td>
+	            <td>
+	              {% if item.status == 'done' %}
+	              <span class="pill pill-green">done</span>
+	              {% elif item.status == 'error' %}
+	              <span class="pill pill-red">error</span>
+	              {% else %}
+	              <span class="pill pill-gray">{{ item.status or '—' }}</span>
+	              {% endif %}
+	            </td>
+	            <td style="font-weight:700">{{ item.result_count or 0 }}</td>
+	            <td>
+	              <div class="td-actions">
+	                <a class="btn-sm btn-sm-green" href="/admin/searches/{{ item._id }}">Ver datos</a>
+	                <a class="btn-sm btn-sm-blue" href="/admin/searches/{{ item._id }}/json" target="_blank" rel="noopener">JSON</a>
+	              </div>
+	            </td>
+	          </tr>
+	          {% endfor %}
+	          {% if not saved_searches %}
+	          <tr><td colspan="7" class="no-rows">No hay búsquedas guardadas para este filtro</td></tr>
+	          {% endif %}
+	        </tbody>
+	      </table>
+
+	      {% if search_pages > 1 %}
+	      <div class="pagination">
+	        {% if search_page > 1 %}
+	        <a href="/admin?tab=searches&search_page={{ search_page-1 }}&s_user={{ search_user }}&s_kind={{ search_kind }}">← Anterior</a>
+	        {% endif %}
+	        <span>Página {{ search_page }} de {{ search_pages }}</span>
+	        {% if search_page < search_pages %}
+	        <a href="/admin?tab=searches&search_page={{ search_page+1 }}&s_user={{ search_user }}&s_kind={{ search_kind }}">Siguiente →</a>
+	        {% endif %}
+	      </div>
+	      {% endif %}
+	    </div>
+	  </div>
+
+	</div>
 
 <!-- ── Modal: Nuevo usuario ── -->
 <div class="modal-overlay" id="modal-create">
