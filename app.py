@@ -9,6 +9,7 @@ import functools
 import re
 import time
 from datetime import datetime
+from urllib.parse import quote
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -219,11 +220,15 @@ def extract_search_contacts(entry: dict) -> list[dict]:
     for index, item in enumerate(entry.get("results") or []):
         phone = extract_phone(item.get("telefono") or item.get("phone") or "")
         wa_phone = normalize_whatsapp_phone(phone)
+        wa_digits = re.sub(r"\D", "", wa_phone) if wa_phone else ""
+        wa_message = "Hola 👋"
         contacts.append({
             "index": index,
             "nombre": item.get("nombre") or item.get("tienda") or item.get("giro") or "Sin nombre",
             "telefono": phone,
             "whatsapp_phone": wa_phone,
+            "wa_me_url": f"https://wa.me/{wa_digits}?text={quote(wa_message)}" if wa_digits else "",
+            "wa_message": wa_message,
             "email": item.get("email") or "",
             "direccion": item.get("direccion") or "",
             "sitio_web": item.get("sitio_web") or item.get("url") or "",
@@ -231,6 +236,13 @@ def extract_search_contacts(entry: dict) -> list[dict]:
             "raw": item,
         })
     return contacts
+
+
+def first_whatsapp_contact(entry: dict) -> dict:
+    for contact in extract_search_contacts(entry):
+        if contact.get("wa_me_url"):
+            return contact
+    return {}
 
 
 def render_message_template(template: str, contact: dict, entry: dict) -> str:
@@ -505,7 +517,25 @@ def admin_panel():
     total_searches = saved_searches_col.count_documents(search_q)
     saved_searches = list(
         saved_searches_col
-        .find(search_q, {'results': 0})
+        .find(search_q, {
+            'job_id': 1,
+            'kind': 1,
+            'query': 1,
+            'location': 1,
+            'filters': 1,
+            'status': 1,
+            'error': 1,
+            'result_count': 1,
+            'user': 1,
+            'user_id': 1,
+            'created_at': 1,
+            'completed_at': 1,
+            'results.nombre': 1,
+            'results.tienda': 1,
+            'results.giro': 1,
+            'results.telefono': 1,
+            'results.phone': 1,
+        })
         .sort('created_at', -1)
         .skip((search_page - 1) * per_page)
         .limit(per_page)
@@ -515,6 +545,7 @@ def admin_panel():
         ts = item.get('completed_at') or item.get('created_at')
         item['completed_str'] = ts.strftime('%d/%m/%Y %H:%M:%S') if ts else '—'
         item['details_fmt'] = _fmt_search_details(item)
+        item['first_whatsapp_contact'] = first_whatsapp_contact(item)
 
     return render_template('admin.html',
         username=session.get('username'),

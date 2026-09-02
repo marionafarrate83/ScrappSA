@@ -173,6 +173,17 @@
     .btn-sm-orange { border-color: var(--orange); color: var(--orange); background: #fff7ed; }
     .btn-sm-orange:hover { background: #ffedd5; }
     .btn-sm-gray   { border-color: var(--gray-400); color: var(--gray-500); background: var(--gray-50); }
+    .btn-sm-whatsapp { border-color: var(--green); color: #128c3a; background: #ecfdf5; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-sm-whatsapp:hover { background: #d1fae5; }
+    .wa-wave { display: inline-block; transform-origin: 70% 70%; animation: wa-wave 1.25s ease-in-out infinite; }
+    @keyframes wa-wave {
+      0%, 100% { transform: rotate(0deg); }
+      15% { transform: rotate(16deg); }
+      30% { transform: rotate(-10deg); }
+      45% { transform: rotate(14deg); }
+      60% { transform: rotate(-6deg); }
+      75% { transform: rotate(8deg); }
+    }
 
     /* ── Filters ── */
     .filter-form {
@@ -498,6 +509,7 @@
 	            <th>Búsqueda</th>
 	            <th>Estado</th>
 	            <th>Resultados</th>
+	            <th>WhatsApp</th>
 	            <th>Acciones</th>
 	          </tr>
 	        </thead>
@@ -531,6 +543,16 @@
 	            </td>
 	            <td style="font-weight:700">{{ item.result_count or 0 }}</td>
 	            <td>
+	              {% set wa_contact = item.first_whatsapp_contact %}
+	              {% if wa_contact %}
+	              <a class="btn-sm btn-sm-whatsapp" href="{{ wa_contact.wa_me_url }}" target="_blank" rel="noopener" title="Enviar {{ wa_contact.wa_message }} a {{ wa_contact.nombre }} ({{ wa_contact.whatsapp_phone }})">
+	                <span class="wa-wave" aria-hidden="true">👋</span> WhatsApp
+	              </a>
+	              {% else %}
+	              <span class="btn-sm btn-sm-gray" title="No hay teléfono válido en esta búsqueda">Sin teléfono</span>
+	              {% endif %}
+	            </td>
+	            <td>
 	              <div class="td-actions">
 	                <a class="btn-sm btn-sm-green" href="/admin/searches/{{ item._id }}">Ver datos</a>
 	                <a class="btn-sm btn-sm-blue" href="/admin/searches/{{ item._id }}/json" target="_blank" rel="noopener">JSON</a>
@@ -539,7 +561,7 @@
 	          </tr>
 	          {% endfor %}
 	          {% if not saved_searches %}
-	          <tr><td colspan="7" class="no-rows">No hay búsquedas guardadas para este filtro</td></tr>
+	          <tr><td colspan="8" class="no-rows">No hay búsquedas guardadas para este filtro</td></tr>
 	          {% endif %}
 	        </tbody>
 	      </table>

@@ -53,6 +53,17 @@
     .btn-primary { background: var(--yellow); color: var(--gray-900); }
     .btn-secondary { background: #eff6ff; color: var(--blue); border: 1.5px solid var(--blue); }
     .btn-danger { background: #fef2f2; color: var(--red); border: 1.5px solid var(--red); }
+    .btn-whatsapp { background: #ecfdf5; color: #128c3a; border: 1.5px solid var(--green); gap: 4px; padding: 6px 10px; font-size: .78rem; }
+    .btn-whatsapp:hover { background: #d1fae5; }
+    .wa-wave { display: inline-block; transform-origin: 70% 70%; animation: wa-wave 1.25s ease-in-out infinite; }
+    @keyframes wa-wave {
+      0%, 100% { transform: rotate(0deg); }
+      15% { transform: rotate(16deg); }
+      30% { transform: rotate(-10deg); }
+      45% { transform: rotate(14deg); }
+      60% { transform: rotate(-6deg); }
+      75% { transform: rotate(8deg); }
+    }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 18px 20px; }
     .field { display: flex; flex-direction: column; gap: 6px; }
     .field.full { grid-column: 1 / -1; }
@@ -103,6 +114,7 @@
             <th>Nombre</th>
             <th>Teléfono</th>
             <th>WhatsApp</th>
+            <th>Abrir</th>
             <th>Categoría</th>
             <th>Dirección</th>
             <th>Sitio</th>
@@ -123,6 +135,15 @@
               <span class="pill pill-gray">Sin teléfono válido</span>
               {% endif %}
             </td>
+            <td>
+              {% if contact.wa_me_url %}
+              <a class="btn btn-whatsapp" href="{{ contact.wa_me_url }}" target="_blank" rel="noopener" title="Enviar {{ contact.wa_message }} a {{ contact.nombre }} ({{ contact.whatsapp_phone }})">
+                <span class="wa-wave" aria-hidden="true">👋</span> WhatsApp
+              </a>
+              {% else %}
+              —
+              {% endif %}
+            </td>
             <td class="td-muted">{{ contact.categoria or '—' }}</td>
             <td class="td-muted">{{ contact.direccion or '—' }}</td>
             <td class="td-muted">
@@ -135,7 +156,7 @@
           </tr>
           {% endfor %}
           {% if not contacts %}
-          <tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:28px">No hay resultados guardados.</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--gray-500);padding:28px">No hay resultados guardados.</td></tr>
           {% endif %}
         </tbody>
       </table>
