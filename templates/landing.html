@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Encuentra empresas por giro y ubicación y construye listas de prospección con ScrappSA.">
+  <title>ScrappSA — Encuentra tu próximo cliente</title>
+  <style>
+    :root { --yellow:#f5c800; --yellow-dark:#d4ac00; --yellow-light:#fffbe6; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --paper:#f3f4f6; --dark:#1a1a2e; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--paper); }
+    a { color:inherit; text-decoration:none; }
+    .wrap { max-width:1180px; margin:auto; padding-left:32px; padding-right:32px; }
+    .site-header { position:sticky; top:0; z-index:10; background:var(--yellow); box-shadow:0 2px 8px rgba(0,0,0,.12); }
+    .nav { height:58px; display:flex; align-items:center; justify-content:space-between; }
+    .brand { display:flex; align-items:center; gap:10px; font-size:1.15rem; font-weight:800; }
+    .mark { width:28px; height:28px; border-radius:50%; background:var(--dark); display:grid; place-items:center; color:var(--yellow); }
+    .mark svg { width:19px; height:19px; }
+    .navlinks { display:flex; align-items:center; gap:26px; font-size:.85rem; font-weight:700; color:#374151; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:46px; padding:12px 20px; border:0; border-radius:8px; font-weight:800; cursor:pointer; transition:.15s ease; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn-primary { background:var(--yellow); color:var(--ink); }
+    .btn-primary:hover { background:var(--yellow-dark); }
+    .btn-outline { background:#fff; border:1.5px solid var(--line); }
+    .nav .btn { min-height:32px; padding:6px 13px; border:1.5px solid #374151; background:transparent; }
+    .nav .btn:hover { background:rgba(0,0,0,.07); }
+
+    .hero { min-height:620px; display:grid; grid-template-columns:.9fr 1.1fr; gap:36px; align-items:center; padding-top:70px; padding-bottom:70px; }
+    .eyebrow { color:#374151; font-size:.72rem; font-weight:800; letter-spacing:1.1px; text-transform:uppercase; }
+    .eyebrow:before { content:""; display:inline-block; width:8px; height:8px; margin-right:9px; border:1px solid var(--yellow-dark); border-radius:50%; background:var(--yellow); }
+    h1 { max-width:620px; margin:20px 0 22px; font-size:clamp(44px,5vw,68px); line-height:1.03; letter-spacing:-3px; }
+    h1 em { font-style:normal; background:linear-gradient(transparent 73%,var(--yellow) 73%); }
+    .lead { max-width:600px; color:#374151; font-size:1.12rem; line-height:1.65; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
+    .fine { margin-top:20px; color:#6b7280; font-size:.78rem; }
+
+    .preview { overflow:hidden; border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:0 12px 38px rgba(17,24,39,.12); }
+    .preview-head { height:54px; padding:0 16px; display:flex; align-items:center; justify-content:space-between; background:var(--yellow); }
+    .preview-brand { display:flex; align-items:center; gap:8px; font-size:.82rem; }
+    .preview-brand strong { font-size:.95rem; }
+    .demo-label { padding:5px 8px; border-radius:99px; background:var(--yellow-light); color:#374151; font-size:.68rem; }
+    .preview-body { display:grid; grid-template-columns:.42fr .58fr; gap:12px; padding:14px; background:var(--paper); }
+    .demo-panel, .demo-results { min-width:0; border-radius:10px; background:#fff; box-shadow:0 2px 16px rgba(0,0,0,.08); }
+    .demo-panel { padding:14px; }
+    .demo-results { padding:14px 14px 8px; }
+    .demo-heading { margin:0 0 10px; color:#374151; font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; }
+    .tabs { display:grid; grid-template-columns:1fr 1.15fr .75fr; gap:4px; margin-bottom:15px; }
+    .tab { min-height:31px; border:1.5px solid var(--line); border-radius:7px; background:#fff; color:#374151; font-size:.68rem; }
+    .tab.active { border-color:var(--yellow); background:var(--yellow-light); color:var(--ink); font-weight:800; }
+    .field { margin:7px 0 10px; padding:9px 10px; border:1.5px solid var(--line); border-radius:7px; font-size:.74rem; }
+    .field small { display:block; margin-bottom:4px; color:#6b7280; }
+    .search-demo { height:34px; display:grid; place-items:center; border-radius:7px; background:var(--yellow); font-size:.72rem; font-weight:800; }
+    .demo-result-head { display:flex; align-items:center; gap:6px; }
+    .demo-result-head h3 { margin:0 auto 0 0; font-size:.9rem; }
+    .export { padding:5px 7px; border-radius:6px; background:#f3f4f6; font-size:.65rem; }
+    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:12px 0; }
+    .metric { min-width:0; border:1.5px solid var(--line); border-radius:8px; padding:8px; }
+    .metric strong { display:block; font-size:1.25rem; }
+    .metric span { color:#6b7280; font-size:.62rem; }
+    table { width:100%; border-collapse:collapse; font-size:.68rem; }
+    th, td { padding:9px 5px; border-bottom:1px solid var(--line); text-align:left; }
+
+    .strip { background:var(--dark); color:#fff; }
+    .strip-inner { min-height:74px; display:flex; align-items:center; gap:24px; }
+    .strip strong { color:var(--yellow); }
+    .strip-item { font-size:.82rem; }
+    .check { color:var(--yellow); margin-right:5px; }
+
+    .section { padding-top:82px; padding-bottom:82px; }
+    .section h2 { max-width:700px; margin:16px 0 14px; font-size:clamp(32px,4vw,48px); letter-spacing:-2px; }
+    .intro { max-width:700px; color:var(--muted); line-height:1.7; }
+    .feature-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:34px; }
+    .feature { min-height:220px; padding:24px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+    .feature h3 { margin:18px 0 10px; }
+    .feature p { color:var(--muted); line-height:1.55; }
+    .icon { width:38px; height:38px; display:grid; place-items:center; border-radius:9px; background:var(--yellow-light); color:#1a1a2e; font-size:1.15rem; }
+
+    .dark-section { background:var(--dark); color:#fff; }
+    .dark-section .eyebrow { color:#d1d5db; }
+    .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:30px; margin-top:38px; }
+    .step { border-top:1px solid #4b5563; padding-top:22px; }
+    .num { color:var(--yellow); font-size:.75rem; font-weight:800; }
+    .step h3 { margin-top:16px; }
+    .step p { color:#d1d5db; line-height:1.6; }
+
+    .cta { margin:76px auto; min-height:210px; display:flex; align-items:center; justify-content:space-between; gap:30px; padding:38px 44px; border-radius:12px; background:#fff; border:1px solid var(--line); }
+    .cta h2 { margin:0 0 10px; font-size:clamp(28px,4vw,44px); line-height:1.05; }
+    .cta p { max-width:620px; color:var(--muted); }
+    footer { min-height:90px; display:flex; align-items:center; justify-content:space-between; color:#6b7280; font-size:.78rem; }
+
+    @media (max-width:900px) {
+      .navlinks a:not(.btn) { display:none; }
+      .hero { grid-template-columns:1fr; min-height:auto; padding-top:52px; }
+      .preview { max-width:660px; width:100%; }
+      .feature-grid { grid-template-columns:repeat(2,1fr); }
+      .strip-inner { flex-wrap:wrap; padding-top:20px; padding-bottom:20px; }
+    }
+    @media (max-width:570px) {
+      .wrap { padding-left:20px; padding-right:20px; }
+      .navlinks { gap:8px; }
+      .hero { padding-top:38px; padding-bottom:44px; }
+      h1 { font-size:43px; letter-spacing:-2px; }
+      .lead { font-size:1rem; }
+      .actions .btn { flex:1 1 100%; }
+      .preview-body { grid-template-columns:1fr; }
+      .feature-grid, .steps { grid-template-columns:1fr; }
+      .section { padding-top:56px; padding-bottom:56px; }
+      .cta { display:block; margin:44px auto; padding:28px 24px; }
+      .cta .btn { width:100%; margin-top:20px; }
+      footer { align-items:flex-start; flex-direction:column; justify-content:center; gap:8px; }
+      .strip strong { width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap nav">
+      <a class="brand" href="/" aria-label="ScrappSA inicio"><span class="mark">S</span> ScrappSA</a>
+      <nav class="navlinks" aria-label="Navegación"><a href="#producto">Producto</a><a href="#como-funciona">Cómo funciona</a><a class="btn" href="/login">Ingresar ↗</a></nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="wrap hero">
+      <div>
+        <div class="eyebrow">Inteligencia comercial · México</div>
+        <h1>Tu próximo cliente <em>está más cerca.</em></h1>
+        <p class="lead">Encuentra empresas por giro y ubicación, conoce su actividad y construye listas de prospectos con información comercial en un solo lugar.</p>
+        <div class="actions"><a class="btn btn-primary" href="/login">Comenzar a prospectar →</a><a class="btn btn-outline" href="#producto">Ver cómo funciona</a></div>
+        <p class="fine">Búsquedas segmentadas · Datos de fuentes públicas · Exportación CSV y JSON</p>
+      </div>
+
+      <div class="preview" aria-label="Vista previa de ScrappSA">
+        <div class="preview-head"><div class="preview-brand"><span class="mark">S</span><strong>ScrappSA</strong></div><span class="demo-label">Demo ilustrativa</span></div>
+        <div class="preview-body">
+          <aside class="demo-panel">
+            <p class="demo-heading">Tipo de búsqueda</p>
+            <div class="tabs"><button class="tab" type="button">Directorio</button><button class="tab" type="button">Actividad</button><button class="tab active" type="button">Maps</button></div>
+            <p class="demo-heading">Parámetros de búsqueda</p>
+            <div class="field"><small>¿Qué buscas?</small><strong>Clínicas dentales</strong></div>
+            <div class="field"><small>Ciudad / Zona</small><strong>Ciudad de México</strong></div>
+            <div class="search-demo">Buscar</div>
+          </aside>
+          <div class="demo-results">
+            <div class="demo-result-head"><h3>Resultados</h3><span class="export">↓ CSV</span><span class="export">↓ JSON</span></div>
+            <div class="metrics"><div class="metric"><strong>48</strong><span>Negocios</span></div><div class="metric"><strong>36</strong><span>Con teléfono</span></div><div class="metric"><strong>29</strong><span>Con sitio web</span></div></div>
+            <table><thead><tr><th>Empresa</th><th>Calificación</th><th>Contacto</th></tr></thead><tbody><tr><td>Clínica Dental A</td><td>★ 4.8</td><td>Disponible</td></tr><tr><td>Consultorio B</td><td>★ 4.5</td><td>Disponible</td></tr><tr><td>Centro Dental C</td><td>★ 4.7</td><td>Disponible</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="strip"><div class="wrap strip-inner"><strong>Fuentes y herramientas</strong><span class="strip-item"><span class="check">✓</span> Directorios comerciales</span><span class="strip-item"><span class="check">✓</span> Google Maps</span><span class="strip-item"><span class="check">✓</span> Señales públicas de LinkedIn</span><span class="strip-item"><span class="check">✓</span> Inteligencia artificial</span></div></div>
+
+    <section class="wrap section" id="producto">
+      <div class="eyebrow">Una plataforma, más oportunidades</div>
+      <h2>De la búsqueda a la oportunidad.</h2>
+      <p class="intro">Reduce la investigación manual y organiza la información que necesitas para decidir a qué empresas acercarte y por qué.</p>
+      <div class="feature-grid">
+        <article class="feature"><span class="icon">⌕</span><h3>Encuentra negocios por giro</h3><p>Busca empresas por actividad, ciudad o zona y descubre prospectos alineados con tu mercado.</p></article>
+        <article class="feature"><span class="icon">●</span><h3>Explora tu territorio</h3><p>Consulta negocios cercanos y analiza la presencia de distintos giros económicos en una ubicación.</p></article>
+        <article class="feature"><span class="icon">♟</span><h3>Conoce mejor a tus prospectos</h3><p>Consulta teléfonos, correos, sitios web y señales públicas de responsables cuando estén disponibles.</p></article>
+        <article class="feature"><span class="icon">✦</span><h3>Entiende qué hace cada empresa</h3><p>Obtén resúmenes de actividad a partir de información disponible y ayuda de inteligencia artificial.</p></article>
+        <article class="feature"><span class="icon">≡</span><h3>Prioriza con filtros</h3><p>Delimita resultados por ubicación, calificación y disponibilidad de datos de contacto o sitio web.</p></article>
+        <article class="feature"><span class="icon">↓</span><h3>Lleva los datos a tu operación</h3><p>Exporta resultados en CSV o JSON para analizarlos en Excel o importarlos a tu CRM.</p></article>
+      </div>
+    </section>
+
+    <section class="dark-section" id="como-funciona">
+      <div class="wrap section"><div class="eyebrow">Así de simple</div><h2>Menos búsquedas. Más conversaciones.</h2><p class="intro">Construye una lista de prospectos alineada a tu estrategia comercial en tres pasos.</p><div class="steps"><article class="step"><div class="num">01 / DEFINE</div><h3>Elige tu mercado</h3><p>Indica el giro, ciudad o zona donde quieres encontrar oportunidades.</p></article><article class="step"><div class="num">02 / EXPLORA</div><h3>Encuentra y enriquece</h3><p>Consulta resultados y agrega información pública disponible.</p></article><article class="step"><div class="num">03 / ACTÚA</div><h3>Construye tu lista</h3><p>Exporta los resultados y prepara un acercamiento comercial relevante.</p></article></div></div>
+    </section>
+
+    <section class="wrap"><div class="cta"><div><h2>El siguiente cliente<br>empieza con una búsqueda.</h2><p>Descubre empresas, explora mercados y convierte información pública en decisiones comerciales.</p></div><a class="btn btn-primary" href="/login">Comenzar a prospectar →</a></div></section>
+  </main>
+
+  <footer class="wrap"><a class="brand" href="/"><span class="mark">S</span> ScrappSA</a><span>Inteligencia comercial para negocios en México.</span><span>© 2026 ScrappSA</span></footer>
+</body>
+</html>

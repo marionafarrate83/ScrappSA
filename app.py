@@ -775,7 +775,15 @@ def admin_change_password(user_id):
     return redirect(url_for('admin_panel'))
 
 
+# ── Landing pública ─────────────────────────────────────────
 @app.route("/")
+def landing():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    return render_template("landing.html")
+
+
+@app.route("/app")
 @login_required
 def index():
     return render_template("index.html",
