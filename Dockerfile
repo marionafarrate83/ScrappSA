@@ -1,4 +1,4 @@
-FROM python:3.11-bookworm-slim
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -10,6 +10,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install --no-install-recommends -y \
     ca-certificates \
     curl \
+    libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
