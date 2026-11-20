@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Encuentra empresas por giro y ubicación y construye listas de prospección con ScrappSA.">
-  <title>ScrappSA — Encuentra tu próximo cliente</title>
+  <title>Scrapsa — Encuentra tu próximo cliente</title>
   <style>
     :root { --yellow:#f5c800; --yellow-dark:#d4ac00; --yellow-light:#fffbe6; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --paper:#f3f4f6; --dark:#1a1a2e; }
     * { box-sizing:border-box; }
@@ -89,6 +89,20 @@
     .cta p { max-width:620px; color:var(--muted); }
     footer { min-height:90px; display:flex; align-items:center; justify-content:space-between; color:#6b7280; font-size:.78rem; }
 
+    .price-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:18px; max-width:760px; margin-top:34px; }
+    .price-card { position:relative; padding:30px; border:1.5px solid var(--line); border-radius:12px; background:#fff; }
+    .price-card.featured { border:2px solid var(--yellow-dark); box-shadow:0 12px 30px rgba(17,24,39,.08); }
+    .price-tag { position:absolute; top:18px; right:18px; padding:5px 8px; border-radius:99px; background:var(--yellow-light); color:#374151; font-size:.68rem; font-weight:800; }
+    .price { margin:18px 0 8px; font-size:clamp(42px,6vw,62px); line-height:1; letter-spacing:-3px; }
+    .price small { font-size:.9rem; letter-spacing:0; }
+    .price-card ul { margin:20px 0 26px; padding:0; list-style:none; }
+    .price-card li { margin:10px 0; color:#374151; }
+    .price-card li:before { content:"✓"; margin-right:8px; color:#16a34a; font-weight:900; }
+    .price-card .btn { width:100%; }
+
+    .trust-row { display:flex; flex-wrap:wrap; gap:12px 28px; margin-top:22px; color:#374151; font-size:.82rem; }
+    .trust-row span:before { content:"✓"; margin-right:7px; color:#16a34a; font-weight:900; }
+
     @media (max-width:900px) {
       .navlinks a:not(.btn) { display:none; }
       .hero { grid-template-columns:1fr; min-height:auto; padding-top:52px; }
@@ -104,7 +118,7 @@
       .lead { font-size:1rem; }
       .actions .btn { flex:1 1 100%; }
       .preview-body { grid-template-columns:1fr; }
-      .feature-grid, .steps { grid-template-columns:1fr; }
+      .feature-grid, .steps, .price-grid { grid-template-columns:1fr; }
       .section { padding-top:56px; padding-bottom:56px; }
       .cta { display:block; margin:44px auto; padding:28px 24px; }
       .cta .btn { width:100%; margin-top:20px; }
@@ -117,7 +131,7 @@
   <header class="site-header">
     <div class="wrap nav">
       <a class="brand" href="/" aria-label="ScrappSA inicio"><span class="mark">S</span> ScrappSA</a>
-      <nav class="navlinks" aria-label="Navegación"><a href="#producto">Producto</a><a href="#como-funciona">Cómo funciona</a><a class="btn" href="/login">Ingresar ↗</a></nav>
+      <nav class="navlinks" aria-label="Navegación"><a href="#producto">Producto</a><a href="#como-funciona">Cómo funciona</a><a href="#precios">Precios</a><a class="btn" href="/login">Ingresar ↗</a></nav>
     </div>
   </header>
 
@@ -125,10 +139,10 @@
     <section class="wrap hero">
       <div>
         <div class="eyebrow">Inteligencia comercial · México</div>
-        <h1>Tu próximo cliente <em>está más cerca.</em></h1>
-        <p class="lead">Encuentra empresas por giro y ubicación, conoce su actividad y construye listas de prospectos con información comercial en un solo lugar.</p>
-        <div class="actions"><a class="btn btn-primary" href="/login">Comenzar a prospectar →</a><a class="btn btn-outline" href="#producto">Ver cómo funciona</a></div>
-        <p class="fine">Búsquedas segmentadas · Datos de fuentes públicas · Exportación CSV y JSON</p>
+        <h1>Encuentra empresas a las que puedes <em>vender.</em></h1>
+        <p class="lead">Filtra negocios por giro, ubicación y actividad comercial. Construye listas de prospectos, identifica datos disponibles y exporta tu mercado a Excel o CSV.</p>
+        <div class="actions"><a class="btn btn-primary" href="/login">Comenzar a prospectar →</a><a class="btn btn-outline" href="#precios">Ver precios</a></div>
+        <div class="trust-row"><span>Acceso inmediato</span><span>Datos de fuentes públicas</span><span>Sin mensualidades</span></div>
       </div>
 
       <div class="preview" aria-label="Vista previa de ScrappSA">
@@ -172,6 +186,39 @@
     </section>
 
     <section class="wrap"><div class="cta"><div><h2>El siguiente cliente<br>empieza con una búsqueda.</h2><p>Descubre empresas, explora mercados y convierte información pública en decisiones comerciales.</p></div><a class="btn btn-primary" href="/login">Comenzar a prospectar →</a></div></section>
+
+    <section class="wrap section" id="precios">
+      <div class="eyebrow">Planes y acceso</div>
+      <h2>Un solo pago. Sin mensualidades.</h2>
+      <p class="intro">Elige el nivel de acceso que mejor se adapte a tu proceso comercial. Los precios siguientes son placeholders y pueden ajustarse antes del lanzamiento.</p>
+      <div class="price-grid">
+        <article class="price-card">
+          <h3>Estándar</h3>
+          <div class="price">$549 <small>MXN</small></div>
+          <p>Para encontrar y exportar tus primeras listas de prospectos.</p>
+          <ul>
+            <li>Búsquedas por giro y ubicación</li>
+            <li>Filtros y exportación CSV / JSON</li>
+            <li>Guardado de búsquedas</li>
+            <li>Acceso individual</li>
+          </ul>
+          <a class="btn btn-outline" href="/checkout?plan=estandar">Elegir Estándar →</a>
+        </article>
+        <article class="price-card featured">
+          <span class="price-tag">Más completo</span>
+          <h3>Pro</h3>
+          <div class="price">$799 <small>MXN</small></div>
+          <p>Para prospectar, contactar y dar seguimiento sin cambiar de herramienta.</p>
+          <ul>
+            <li>Todo lo incluido en Estándar</li>
+            <li>Enriquecimiento de información</li>
+            <li>Herramientas de seguimiento comercial</li>
+            <li>Licencia para equipo</li>
+          </ul>
+          <a class="btn btn-primary" href="/checkout?plan=pro">Elegir Pro →</a>
+        </article>
+      </div>
+    </section>
   </main>
 
   <footer class="wrap"><a class="brand" href="/"><span class="mark">S</span> ScrappSA</a><span>Inteligencia comercial para negocios en México.</span><span>© 2026 ScrappSA</span></footer>

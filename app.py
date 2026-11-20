@@ -21,6 +21,7 @@ from pymongo import MongoClient, DESCENDING
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson import ObjectId
 import requests
+import stripe
 
 import scraper as sc
 import price_scraper as ps
@@ -58,6 +59,14 @@ class LazyCollection:
 users_col = LazyCollection('users')
 audit_col = LazyCollection('audit_logs')
 saved_searches_col = LazyCollection('saved_searches')
+purchases_col = LazyCollection('purchases')
+
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY') or os.environ.get('STRIPE_API_KEY') or ''
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_PLANS = {
+    'estandar': {'name': 'ScrappSA Estándar', 'amount': 54900},
+    'pro': {'name': 'ScrappSA Pro', 'amount': 79900},
+}
 
 def ensure_indexes():
     try:
@@ -343,6 +352,68 @@ def login():
             pass
         error = 'Usuario o contraseña incorrectos'
     return render_template('login.html', error=error)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    purchase = session.get('purchase_verified')
+    if not purchase:
+        return redirect(url_for('landing'))
+    if stripe.api_key:
+        stripe_session_id = purchase.get('stripe_session_id', '')
+        paid_purchase = purchases_col.find_one({
+            'stripe_session_id': stripe_session_id,
+            'status': 'paid',
+        })
+        if not paid_purchase:
+            session.pop('purchase_verified', None)
+            return redirect(url_for('landing'))
+
+    error = None
+    if request.method == 'POST':
+        username = (request.form.get('email') or purchase.get('email') or '').strip().lower()
+        password = request.form.get('password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
+        email = username
+
+        if not username or not password:
+            error = 'Completa el correo electrónico y la contraseña'
+        elif '@' not in username or '.' not in username:
+            error = 'Ingresa un correo electrónico válido'
+        elif len(password) < 8:
+            error = 'La contraseña debe tener al menos 8 caracteres'
+        elif password != confirm_password:
+            error = 'Las contraseñas no coinciden'
+        elif users_col.find_one({'username': username}):
+            error = 'Ese correo electrónico ya está registrado'
+        else:
+            try:
+                inserted = users_col.insert_one({
+                    'username': username,
+                    'email': email,
+                    'password_hash': generate_password_hash(password, method='pbkdf2:sha256'),
+                    'created_at': datetime.utcnow(),
+                    'is_active': True,
+                    'is_admin': False,
+                    'plan': purchase.get('plan', 'estandar'),
+                    'purchase_verified': True,
+                })
+                session['user_id'] = str(inserted.inserted_id)
+                session['username'] = username
+                session['is_admin'] = False
+                session.pop('purchase_verified', None)
+                log_audit('register')
+                return redirect(url_for('index'))
+            except Exception:
+                error = 'No fue posible crear la cuenta. Inténtalo nuevamente.'
+
+    return render_template(
+        'register.html',
+        error=error,
+        plan=purchase.get('plan', 'estandar'),
+        name=purchase.get('name', ''),
+        email=purchase.get('email', ''),
+    )
 
 
 @app.route('/logout')
@@ -1045,6 +1116,167 @@ def download(job_id: str, fmt: str):
         )
 
     return jsonify({"error": "Formato inválido. Usa json o csv"}), 400
+
+
+@app.route("/checkout", methods=['GET', 'POST'])
+def checkout():
+    plan = (request.values.get('plan') or 'estandar').strip().lower()
+    if plan not in ('estandar', 'pro'):
+        plan = 'estandar'
+
+    if request.method == 'POST':
+        name = (request.form.get('name') or '').strip()
+        email = (request.form.get('email') or '').strip().lower()
+        if not name or not email:
+            return render_template("checkout.html", plan=plan, success=False, error='Completa tu nombre y correo electrónico.')
+
+        if stripe.api_key:
+            try:
+                selected = STRIPE_PLANS[plan]
+                checkout_session = stripe.checkout.Session.create(
+                    mode='payment',
+                    customer_email=email,
+                    line_items=[{'price_data': {
+                        'currency': 'mxn',
+                        'product_data': {'name': selected['name']},
+                        'unit_amount': selected['amount'],
+                    }, 'quantity': 1}],
+                    metadata={'plan': plan, 'name': name, 'email': email},
+                    payment_intent_data={'metadata': {'plan': plan, 'name': name, 'email': email}},
+                    success_url=url_for('checkout_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+                    cancel_url=url_for('checkout', _external=True) + '?plan=' + plan,
+                )
+                return redirect(checkout_session.url, code=303)
+            except Exception as exc:
+                return render_template("checkout.html", plan=plan, success=False, error=f'No se pudo iniciar Stripe: {str(exc)}')
+
+        session['purchase_verified'] = {
+            'plan': plan, 'name': name, 'email': email,
+            'verified': True, 'demo': True,
+        }
+        return redirect(url_for('register'))
+
+    return render_template("checkout.html", plan=plan, success=False, stripe_configured=bool(stripe.api_key))
+
+
+@app.route('/checkout/success')
+def checkout_success():
+    session_id = request.args.get('session_id', '').strip()
+    if not session_id or not stripe.api_key:
+        return redirect(url_for('checkout'))
+
+    try:
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+        if checkout_session.payment_status != 'paid':
+            return redirect(url_for('checkout'))
+
+        session_data = checkout_session.to_dict() if hasattr(checkout_session, 'to_dict') else dict(checkout_session)
+        metadata = session_data.get('metadata') or {}
+        customer_details = session_data.get('customer_details') or {}
+        plan = metadata.get('plan', 'estandar')
+        email = (metadata.get('email') or customer_details.get('email') or '').strip().lower()
+        name = metadata.get('name', '')
+
+        purchases_col.update_one(
+            {'stripe_session_id': session_id},
+            {'$set': {
+                'stripe_session_id': session_id,
+                'stripe_payment_intent': session_data.get('payment_intent', ''),
+                'email': email, 'name': name, 'plan': plan,
+                'status': 'paid', 'updated_at': datetime.utcnow(),
+            }, '$setOnInsert': {'created_at': datetime.utcnow()}},
+            upsert=True,
+        )
+        session['purchase_verified'] = {
+            'plan': plan, 'name': name, 'email': email,
+            'verified': True, 'stripe_session_id': session_id,
+        }
+        register_url = url_for('register', _external=True)
+        existing_purchase = purchases_col.find_one({'stripe_session_id': session_id})
+        if not existing_purchase or not existing_purchase.get('confirmation_email_sent'):
+            base_url = os.environ.get('APP_BASE_URL', '').strip()
+            register_url = f"{base_url.rstrip('/')}/register" if base_url else url_for('register', _external=True)
+            email_sent = send_purchase_confirmation(email, name, plan, register_url)
+            purchases_col.update_one(
+                {'stripe_session_id': session_id},
+                {'$set': {
+                    'confirmation_email_sent': email_sent,
+                    'confirmation_email_attempted_at': datetime.utcnow(),
+                }},
+                upsert=True,
+            )
+        return redirect(url_for('register'))
+    except Exception as exc:
+        app.logger.exception("Stripe checkout success failed: %s", exc)
+        return redirect(url_for('checkout'))
+
+
+@app.route('/webhooks/stripe', methods=['POST'])
+def stripe_webhook():
+    payload = request.get_data()
+    signature = request.headers.get('Stripe-Signature', '')
+    if not STRIPE_WEBHOOK_SECRET:
+        return jsonify({'error': 'Webhook no configurado'}), 503
+
+    try:
+        event = stripe.Webhook.construct_event(payload, signature, STRIPE_WEBHOOK_SECRET)
+    except Exception:
+        return jsonify({'error': 'Firma inválida'}), 400
+
+    if event['type'] == 'checkout.session.completed':
+        checkout_session = event['data']['object']
+        if checkout_session.get('payment_status') == 'paid':
+            metadata = checkout_session.get('metadata') or {}
+            customer_details = checkout_session.get('customer_details') or {}
+            purchases_col.update_one(
+                {'stripe_session_id': checkout_session['id']},
+                {'$set': {
+                    'stripe_session_id': checkout_session['id'],
+                    'stripe_payment_intent': checkout_session.get('payment_intent'),
+                    'email': (metadata.get('email') or customer_details.get('email') or '').strip().lower(),
+                    'name': metadata.get('name', ''),
+                    'plan': metadata.get('plan', 'estandar'),
+                    'status': 'paid', 'updated_at': datetime.utcnow(),
+                }, '$setOnInsert': {'created_at': datetime.utcnow()}},
+                upsert=True,
+            )
+
+    return jsonify({'received': True}), 200
+
+
+def send_purchase_confirmation(email: str, name: str, plan: str, register_url: str = '') -> bool:
+    api_key = os.environ.get('RESEND_API_KEY', '').strip()
+    if not api_key or not email:
+        return False
+
+    sender = os.environ.get('RESEND_FROM_EMAIL', 'ScrappSA <onboarding@resend.dev>').strip()
+    plan_name = 'Pro' if plan == 'pro' else 'Estándar'
+    amount = '$799 MXN' if plan == 'pro' else '$549 MXN'
+
+    subject = f'Pago confirmado — ScrappSA {plan_name}'
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#111827">
+      <h1 style="margin-bottom:8px">Pago confirmado</h1>
+      <p>Hola {name or 'comprador'},</p>
+      <p>Tu compra de <strong>ScrappSA {plan_name}</strong> por <strong>{amount}</strong> fue confirmada.</p>
+      <p>Ya puedes crear tu cuenta con el correo <strong>{email}</strong>.</p>
+      {f'<p><a href="{register_url}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f5c800;color:#111827;text-decoration:none;font-weight:700">Crear mi cuenta</a></p>' if register_url else ''}
+      <p style="color:#6b7280;font-size:13px">Si no realizaste esta compra, responde a este correo.</p>
+    </div>
+    """
+
+    try:
+        response = requests.post(
+            'https://api.resend.com/emails',
+            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+            json={'from': sender, 'to': [email], 'subject': subject, 'html': html},
+            timeout=20,
+        )
+        response.raise_for_status()
+        return True
+    except Exception as exc:
+        app.logger.warning('Purchase confirmation email failed for %s: %s', email, exc)
+        return False
 
 
 if __name__ == "__main__":
