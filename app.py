@@ -22,6 +22,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from bson import ObjectId
 import requests
 import stripe
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 import scraper as sc
 import price_scraper as ps
@@ -357,8 +358,28 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     purchase = session.get('purchase_verified')
+
+    token = (request.args.get('purchase') or '').strip()
+    if token:
+        token_data = load_purchase_token(token)
+        if token_data:
+            paid_purchase = purchases_col.find_one({
+                'stripe_session_id': token_data.get('stripe_session_id'),
+                'status': 'paid',
+            })
+            if paid_purchase:
+                purchase = {
+                    'plan': paid_purchase.get('plan', 'estandar'),
+                    'name': paid_purchase.get('name', ''),
+                    'email': paid_purchase.get('email', ''),
+                    'verified': True,
+                    'stripe_session_id': paid_purchase.get('stripe_session_id'),
+                }
+                session['purchase_verified'] = purchase
+
     if not purchase:
         return redirect(url_for('landing'))
+
     if stripe.api_key:
         stripe_session_id = purchase.get('stripe_session_id', '')
         paid_purchase = purchases_col.find_one({
@@ -1195,7 +1216,8 @@ def checkout_success():
         existing_purchase = purchases_col.find_one({'stripe_session_id': session_id})
         if not existing_purchase or not existing_purchase.get('confirmation_email_sent'):
             base_url = os.environ.get('APP_BASE_URL', '').strip()
-            register_url = f"{base_url.rstrip('/')}/register" if base_url else url_for('register', _external=True)
+            register_path = '/register?purchase=' + create_purchase_token(session_id)
+            register_url = f"{base_url.rstrip('/')}/register?purchase={create_purchase_token(checkout_session['id'])}" if base_url else url_for('register', purchase=create_purchase_token(checkout_session['id']), _external=True)
             email_sent = send_purchase_confirmation(email, name, plan, register_url)
             purchases_col.update_one(
                 {'stripe_session_id': session_id},
@@ -1277,6 +1299,21 @@ def send_purchase_confirmation(email: str, name: str, plan: str, register_url: s
     except Exception as exc:
         app.logger.warning('Purchase confirmation email failed for %s: %s', email, exc)
         return False
+
+
+def purchase_token_serializer():
+    return URLSafeTimedSerializer(app.secret_key, salt='scrappsa-purchase-registration')
+
+
+def create_purchase_token(stripe_session_id: str) -> str:
+    return purchase_token_serializer().dumps({'stripe_session_id': stripe_session_id})
+
+
+def load_purchase_token(token: str):
+    try:
+        return purchase_token_serializer().loads(token, max_age=7 * 24 * 60 * 60)
+    except (BadSignature, SignatureExpired):
+        return None
 
 
 if __name__ == "__main__":
