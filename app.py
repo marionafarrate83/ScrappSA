@@ -28,6 +28,7 @@ import scraper as sc
 import price_scraper as ps
 import maps_scraper as ms
 import economic_activity as ea
+from business_directory import create_blueprint
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cambia-esto-en-produccion')
@@ -98,6 +99,9 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return _wrap
+
+
+app.register_blueprint(create_blueprint(login_required))
 
 
 def admin_required(f):

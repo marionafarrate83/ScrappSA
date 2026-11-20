@@ -1,0 +1,44 @@
+<section id="directory-workspace" class="dir-workspace" data-owner="{{ username }}" aria-label="Directorio de empresas">
+  <div class="dir-intro">
+    <div><span class="dir-eyebrow">PROSPECCIÓN · MÉXICO 2026</span><h2>Encuentra tu próximo cliente.</h2><p>Explora empresas, identifica oportunidades y organiza tus prospectos.</p></div>
+    <div class="dir-source"><span class="dir-source-dot"></span><div><strong id="dir-catalogue-count">Preparando catálogo…</strong><small>Fuente: DENUE / INEGI · Edición 2026</small></div></div>
+  </div>
+  <div class="dir-tabs" role="group" aria-label="Vista del directorio">
+    <button type="button" id="dir-tab-search" class="is-active" aria-pressed="true">Buscar empresas</button>
+    <button type="button" id="dir-tab-lists" aria-pressed="false">Mis listas <span id="dir-list-count">0</span></button>
+    <span class="dir-tabs-hint">Datos del negocio, oportunidades reales.</span>
+  </div>
+  <div id="dir-alert" class="dir-alert" role="status" aria-live="polite" hidden></div>
+  <div class="dir-grid" id="dir-search-view">
+    <aside class="dir-filters" aria-label="Filtros de empresas">
+      <div class="dir-filter-title"><h3>Filtros</h3><button type="button" id="dir-reset" class="dir-text-btn">Limpiar todo</button></div>
+      <label class="dir-field">Estado<select id="dir-state"><option value="">Todo México</option></select></label>
+      <label class="dir-field">Municipio<select id="dir-municipality" disabled><option value="">Selecciona un estado</option></select></label>
+      <label class="dir-field">Sector<select id="dir-sector"><option value="">Todos los sectores</option></select></label>
+      <label class="dir-field">Tamaño de empresa<select id="dir-size"><option value="">Todos los tamaños</option><option>Micro</option><option>Pequeña</option><option>Mediana</option><option>Grande</option></select></label>
+      <label class="dir-field">Actividad SCIAN<input id="dir-activity" list="dir-activities" placeholder="Código o actividad" autocomplete="off"><datalist id="dir-activities"></datalist></label>
+      <fieldset class="dir-quality"><legend>Calidad mínima</legend><div id="dir-score" role="group" aria-label="Calidad mínima"><button type="button" data-score="1" class="is-active" aria-pressed="true">Todas</button><button type="button" data-score="2" aria-pressed="false">2+</button><button type="button" data-score="3" aria-pressed="false">3+</button><button type="button" data-score="4" aria-pressed="false">4+</button><button type="button" data-score="5" aria-pressed="false">5</button></div><small>Qué tan completo está el registro, de 1 a 5.</small></fieldset>
+      <fieldset class="dir-contact"><legend>Datos de contacto</legend><label><input type="checkbox" id="dir-phone"> Con teléfono</label><label><input type="checkbox" id="dir-email"> Con email</label><label><input type="checkbox" id="dir-website"> Con sitio web</label></fieldset>
+      <label class="dir-field">Código postal<input id="dir-postal" inputmode="numeric" maxlength="5" pattern="[0-9]*" placeholder="Ej. 44 o 44600"></label>
+      <div class="dir-filter-note">Combina filtros para encontrar empresas que encajen con tu negocio.</div>
+    </aside>
+    <main class="dir-results">
+      <form id="dir-search-form" class="dir-searchbar" role="search">
+        <div class="dir-query-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="dir-query" type="search" aria-label="Buscar empresas" placeholder="Nombre, actividad, dirección, teléfono o email…" maxlength="200"></div>
+        <select id="dir-scope" aria-label="Buscar en"><option value="all">En todo</option><option value="name">Solo en nombre</option></select><button class="dir-btn dir-primary" type="submit">Buscar</button>
+      </form>
+      <div class="dir-presets"><span>Empieza por aquí</span><button type="button" id="dir-best" aria-pressed="false">✦ Mejores prospectos · 4+ con teléfono</button><button type="button" data-query="restaurantes">Restaurantes</button><button type="button" data-query="dentales">Clínicas dentales</button></div>
+      <div class="dir-resultsbar"><div><strong id="dir-total">—</strong> <span>empresas</span><small id="dir-result-context">en el directorio</small></div><div class="dir-actions"><label class="dir-sort">Ordenar<select id="dir-sort"><option value="score">Calidad primero</option><option value="name">Nombre A–Z</option><option value="municipality">Municipio A–Z</option></select></label><button type="button" id="dir-export" class="dir-btn">Exportar CSV</button><button type="button" id="dir-export-json" class="dir-btn" title="Descargar resultados en JSON">JSON</button></div></div>
+      <div class="dir-selection" id="dir-selection" hidden><span><strong id="dir-selected-count">0</strong> seleccionadas</span><button type="button" id="dir-add-list" class="dir-btn dir-primary">Agregar a lista</button><button type="button" id="dir-export-selected" class="dir-text-btn">Exportar selección</button><button type="button" id="dir-clear-selection" class="dir-text-btn">Quitar selección</button></div>
+      <div class="dir-table-wrap" id="dir-table-region" aria-busy="true"><table class="dir-table"><thead><tr><th class="dir-check"><input type="checkbox" id="dir-select-page" aria-label="Seleccionar las empresas de esta página"></th><th>Empresa</th><th>Sector y tamaño</th><th>Ubicación</th><th>Teléfono / Email</th><th>Calidad</th><th><span class="dir-sr-only">Ficha</span></th></tr></thead><tbody id="dir-rows"><tr><td colspan="7" class="dir-empty">Cargando empresas del directorio…</td></tr></tbody></table></div>
+      <div class="dir-pagination"><span id="dir-range" aria-live="polite">50 empresas por página</span><div><button type="button" id="dir-prev" class="dir-btn" disabled>Anterior</button><label>Página <input type="number" id="dir-page" min="1" value="1" aria-label="Número de página"> <span id="dir-pages">de 1</span></label><button type="button" id="dir-next" class="dir-btn" disabled>Siguiente</button></div></div>
+      <p class="dir-footnote">Calidad indica disponibilidad de datos; no representa una calificación del negocio. Exporta hasta 50,000 empresas por archivo.</p>
+    </main>
+  </div>
+  <div id="dir-lists-view" class="dir-lists-view" hidden>
+    <aside class="dir-filters"><div class="dir-filter-title"><h3>Mis listas</h3></div><button type="button" id="dir-new-list" class="dir-btn dir-primary dir-block">Nueva lista</button><div id="dir-lists-nav" class="dir-lists-nav"></div><div class="dir-filter-note">Tus listas se guardan en este navegador para tu usuario. Exporta una copia antes de borrar los datos de navegación.</div></aside>
+    <main class="dir-results" id="dir-list-content"></main>
+  </div>
+  <dialog id="dir-detail" class="dir-detail"><div class="dir-dialog-head"><span>FICHA DE EMPRESA</span><button type="button" class="dir-close" data-close="dir-detail" aria-label="Cerrar ficha">✕</button></div><div id="dir-detail-content"></div></dialog>
+  <dialog id="dir-list-dialog" class="dir-small-dialog"><form id="dir-list-form"><div class="dir-dialog-head"><h3>Agregar a una lista</h3><button type="button" class="dir-close" data-close="dir-list-dialog" aria-label="Cerrar">✕</button></div><p id="dir-add-description"></p><p id="dir-list-error" role="alert" hidden></p><label class="dir-field">Lista existente<select id="dir-target-list"><option value="">Crear una lista nueva</option></select></label><label class="dir-field">Nombre de la nueva lista<input id="dir-new-list-name" maxlength="80" placeholder="Ej. Prospectos Guadalajara"></label><button type="submit" class="dir-btn dir-primary dir-block">Guardar empresas</button></form></dialog>
+</section>

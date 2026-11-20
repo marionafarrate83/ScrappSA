@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/marionafarrate83/Directorio_Empresas_MX_2026_App_Estandar",
+  "commit": "00ec84c86fb5a642dc5cc3a5db6f9d0f518e18af",
+  "imported_on": "2026-11-20",
+  "declared_source": "DENUE / INEGI",
+  "edition": "2026",
+  "total": 2506364,
+  "transformation": "JSON payloads extracted without executing JavaScript, gzip compressed; original row order retained."
+}

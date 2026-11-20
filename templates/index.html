@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ScraperSA</title>
+  <title>ScrappSA · Directorio de empresas</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='directory.css') }}">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -503,65 +504,19 @@
   </div>
 </header>
 
-<div class="layout">
+<nav class="app-modes" aria-label="Herramientas de ScrappSA">
+  <button class="mode-tab active" id="mode-directory" type="button" aria-pressed="true">Directorio</button>
+  <button class="mode-tab" id="mode-activity" type="button" aria-pressed="false">Actividad económica</button>
+  <button class="mode-tab" id="mode-maps" type="button" aria-pressed="false">Maps</button>
+</nav>
+{% include 'directory.html' %}
+
+<div class="layout hidden" id="legacy-workspace">
 
   <!-- ── Panel izquierdo ── -->
   <aside class="panel">
     <h2>Tipo de búsqueda</h2>
 
-	    <div class="mode-tabs">
-	      <button class="mode-tab active" id="mode-directory" type="button">Directorio</button>
-	      <button class="mode-tab" id="mode-activity" type="button">Actividad económica</button>
-	      <button class="mode-tab" id="mode-maps" type="button">Maps</button>
-	    </div>
-
-    <div id="directory-form">
-      <h2>Parámetros de búsqueda</h2>
-
-      <div class="field">
-      <label>¿Qué buscas?</label>
-      <div class="suggestions">
-        <input id="inp-query" type="text" placeholder="ej. dermatólogos, abogados…"
-               autocomplete="off" />
-        <ul class="suggestion-list" id="sug-query">
-          <li data-val="contadores">Contadores</li>
-          <li data-val="dermatólogos">Dermatólogos</li>
-          <li data-val="dentistas">Dentistas</li>
-          <li data-val="abogados">Abogados</li>
-          <li data-val="arquitectos">Arquitectos</li>
-          <li data-val="psicólogos">Psicólogos</li>
-          <li data-val="veterinarios">Veterinarios</li>
-          <li data-val="electricistas">Electricistas</li>
-          <li data-val="plomeros">Plomeros</li>
-          <li data-val="restaurantes">Restaurantes</li>
-          <li data-val="hoteles">Hoteles</li>
-          <li data-val="farmacias">Farmacias</li>
-        </ul>
-      </div>
-      </div>
-
-      <div class="field">
-      <label>Ciudad / Zona</label>
-      <div class="suggestions">
-        <input id="inp-location" type="text" placeholder="ej. Ciudad de Mexico"
-               autocomplete="off" />
-        <ul class="suggestion-list" id="sug-location">
-          <li data-val="Ciudad de Mexico">Ciudad de México</li>
-          <li data-val="Guadalajara">Guadalajara</li>
-          <li data-val="Monterrey">Monterrey</li>
-          <li data-val="Puebla">Puebla</li>
-          <li data-val="Tijuana">Tijuana</li>
-          <li data-val="León">León</li>
-          <li data-val="Juárez">Juárez</li>
-          <li data-val="Mérida">Mérida</li>
-          <li data-val="Cancún">Cancún</li>
-          <li data-val="Querétaro">Querétaro</li>
-          <li data-val="San Luis Potosí">San Luis Potosí</li>
-          <li data-val="Aguascalientes">Aguascalientes</li>
-        </ul>
-      </div>
-      </div>
-    </div>
 
 	    <div id="activity-form" class="hidden">
 	      <h2>Actividad económica</h2>
@@ -726,44 +681,6 @@
 </div>
 
 <script>
-// ── Suggestions ────────────────────────────────────────────
-function initSuggestions(inputId, listId) {
-  const inp = document.getElementById(inputId);
-  const list = document.getElementById(listId);
-  const items = list.querySelectorAll('li');
-
-  inp.addEventListener('focus', () => {
-    filterList('');
-    list.classList.add('open');
-  });
-  inp.addEventListener('input', () => filterList(inp.value));
-  document.addEventListener('click', (e) => {
-    if (!inp.contains(e.target) && !list.contains(e.target))
-      list.classList.remove('open');
-  });
-  items.forEach(li => {
-    li.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      inp.value = li.dataset.val;
-      list.classList.remove('open');
-    });
-  });
-
-  function filterList(q) {
-    const lq = q.toLowerCase();
-    let visible = 0;
-    items.forEach(li => {
-      const match = li.textContent.toLowerCase().includes(lq) ||
-                    li.dataset.val.toLowerCase().includes(lq);
-      li.style.display = match ? '' : 'none';
-      if (match) visible++;
-    });
-    list.classList.toggle('open', visible > 0 && document.activeElement === inp);
-  }
-}
-initSuggestions('inp-query', 'sug-query');
-initSuggestions('inp-location', 'sug-location');
-
 // ── Estado global ───────────────────────────────────────────
 let allResults = [];
 let currentJobId = null;
@@ -787,7 +704,9 @@ function setMode(mode) {
 	  $('mode-directory').classList.toggle('active', mode === 'directory');
 	  $('mode-activity').classList.toggle('active', mode === 'economic_activity');
 	  $('mode-maps').classList.toggle('active', mode === 'maps');
-	  $('directory-form').classList.toggle('hidden', mode !== 'directory');
+	  $('directory-workspace').hidden = mode !== 'directory';
+  $('legacy-workspace').classList.toggle('hidden', mode === 'directory');
+  ['directory', 'activity', 'maps'].forEach(name => $('mode-' + name).setAttribute('aria-pressed', String($('mode-' + name).classList.contains('active'))));
 	  $('activity-form').classList.toggle('hidden', mode !== 'economic_activity');
 	  $('maps-form').classList.toggle('hidden', mode !== 'maps');
   $('stats-box').classList.add('hidden');
@@ -816,23 +735,17 @@ function setMode(mode) {
 	$('inp-activity-location').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
 	$('inp-maps-query').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
 $('inp-maps-location').addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
-[$('inp-query'), $('inp-location')].forEach(inp =>
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); })
-);
 
 	async function startSearch() {
+    if (currentMode === 'directory') return;
 	  const isActivity = currentMode === 'economic_activity';
 	  const isMaps = currentMode === 'maps';
 	  const query = isActivity
 	    ? 'actividad economica'
-	    : isMaps
-	    ? $('inp-maps-query').value.trim()
-	    : $('inp-query').value.trim();
+	    : $('inp-maps-query').value.trim();
 	  const location = isActivity
 	    ? $('inp-activity-location').value.trim()
-	    : isMaps
-	    ? $('inp-maps-location').value.trim()
-	    : $('inp-location').value.trim();
+	    : $('inp-maps-location').value.trim();
 
 	  if (isActivity && !location) {
 	    alert('Por favor ingresa la ciudad o zona a analizar.');
@@ -841,10 +754,6 @@ $('inp-maps-location').addEventListener('keydown', e => { if (e.key === 'Enter')
   if (isMaps && (!query || !location)) {
     alert('Por favor ingresa qué negocio buscas y la ciudad o zona.');
     return;
-  }
-	  if (!isActivity && !isMaps && (!query || !location)) {
-	    alert('Por favor ingresa qué buscas y la ciudad.');
-	    return;
   }
 
   // Reset UI
@@ -868,12 +777,10 @@ $('inp-maps-location').addEventListener('keydown', e => { if (e.key === 'Enter')
 	  renderHeader();
 
 	  // Iniciar job
-	  const endpoint = isActivity ? '/api/economic-activity' : isMaps ? '/api/maps' : '/api/scrape';
+	  const endpoint = isActivity ? '/api/economic-activity' : '/api/maps';
 	  const payloadBody = isActivity
 	    ? { location, filters: getActivityFilters() }
-	    : isMaps
-	    ? { query, location, filters: getMapsFilters() }
-    : { query, location };
+	    : { query, location, filters: getMapsFilters() };
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -939,7 +846,7 @@ function appendLog(msg, cls = '') {
 	  const res = await fetch(`/api/results/${job_id}`);
 	  const data = await res.json();
 	  allResults = data.results || [];
-	  currentMode = ['economic_activity', 'maps'].includes(data.kind) ? data.kind : currentMode;
+	  if (currentMode !== data.kind) { $('btn-search').disabled = false; return; }
 
   // Links de descarga
   $('dl-json').href = `/api/download/${job_id}/json`;
@@ -1200,5 +1107,6 @@ function renderLider(r) {
 
 renderHeader();
 </script>
+<script type="module" src="{{ url_for('static', filename='directory.js') }}"></script>
 </body>
 </html>
