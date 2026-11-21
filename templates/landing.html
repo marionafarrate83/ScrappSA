@@ -139,6 +139,16 @@
     .preview-caption { margin:0; padding:12px 16px; border-top:1px solid var(--line); color:var(--muted); font-size:.8rem; line-height:1.5; }
     .price-tag { position:static; display:inline-block; }
     section[id] { scroll-margin-top:80px; }
+    .testimonial-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:32px; }
+    .testimonial { margin:0; display:flex; flex-direction:column; padding:28px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+    .testimonial-quote { color:#a08200; font-size:3rem; font-family:Georgia,serif; line-height:1; }
+    .testimonial blockquote { margin:12px 0 28px; font-size:1rem; line-height:1.75; color:#374151; flex:1; }
+    .testimonial figcaption { display:flex; align-items:center; gap:12px; padding-top:20px; border-top:1px solid var(--line); }
+    .testimonial-avatar { display:grid; place-items:center; width:44px; height:44px; flex-shrink:0; border-radius:50%; background:var(--yellow-light); color:#766000; font-size:.875rem; font-weight:800; }
+    .testimonial-author { display:block; font-size:.95rem; font-weight:750; }
+    .testimonial-role { display:block; margin-top:4px; font-size:.8rem; color:var(--muted); }
+    .testimonial-notice { font-size:.875rem; color:var(--muted); line-height:1.6; }
+    @media (max-width:760px) { .testimonial-grid { grid-template-columns:1fr; } .testimonial { padding:24px; } }
   </style>
 </head>
 <body>
@@ -193,6 +203,29 @@
       <div class="eyebrow">Tu proceso de prospección</div><h2>Elige, revisa y da seguimiento.</h2><p class="intro">Empieza con tu mercado objetivo y construye una lista que puedas trabajar.</p>
       <div class="steps"><article class="step"><div class="num">DEFINE TU MERCADO</div><h3>Elige actividad y ubicación</h3><p>Filtra el directorio o busca negocios en Google Maps. Usa Actividad económica para explorar distintos giros de una zona.</p></article><article class="step"><div class="num">REVISA LOS DATOS</div><h3>Abre la ficha del negocio</h3><p>Consulta su actividad y sus datos de contacto. Revisa la vigencia de la información antes de contactar.</p></article><article class="step"><div class="num">ORGANIZA TU TRABAJO</div><h3>Crea listas y registra avances</h3><p>Guarda empresas del directorio en listas, escribe notas y actualiza el seguimiento. Exporta una copia para tu operación.</p></article></div>
     </div></section>
+    <section class="wrap section" id="testimonios" aria-labelledby="testimonios-title">
+      <div class="eyebrow">Testimonios · Ejemplos ilustrativos</div>
+      <h2 id="testimonios-title">Una prospección más organizada.</h2>
+      <p class="intro">Encontrar empresas, revisar sus datos y llevar el seguimiento en un mismo lugar.</p>
+      <p class="testimonial-notice">Los siguientes textos son ejemplos ilustrativos; no corresponden a opiniones de clientes reales.</p>
+      <div class="testimonial-grid">
+        <figure class="testimonial">
+          <span class="testimonial-quote" aria-hidden="true">“</span>
+          <blockquote>“Puedo filtrar empresas por actividad y municipio para concentrarme en los negocios que encajan con lo que vendo. Tener sus datos en una ficha me ayuda a preparar cada acercamiento.”</blockquote>
+          <figcaption><span class="testimonial-avatar" aria-hidden="true">VB</span><div><span class="testimonial-author">Ventas B2B</span><span class="testimonial-role">Perfil ilustrativo</span></div></figcaption>
+        </figure>
+        <figure class="testimonial">
+          <span class="testimonial-quote" aria-hidden="true">“</span>
+          <blockquote>“Las listas me permiten organizar mis prospectos, anotar lo que hablamos y registrar a quién necesito dar seguimiento. Puedo retomar mi trabajo sin perder el contexto.”</blockquote>
+          <figcaption><span class="testimonial-avatar" aria-hidden="true">SP</span><div><span class="testimonial-author">Servicios profesionales</span><span class="testimonial-role">Perfil ilustrativo</span></div></figcaption>
+        </figure>
+        <figure class="testimonial">
+          <span class="testimonial-quote" aria-hidden="true">“</span>
+          <blockquote>“Combino el directorio con las búsquedas de Google Maps para explorar una zona. Después exporto las empresas que me interesan a CSV y las reviso en Excel.”</blockquote>
+          <figcaption><span class="testimonial-avatar" aria-hidden="true">DC</span><div><span class="testimonial-author">Distribución comercial</span><span class="testimonial-role">Perfil ilustrativo</span></div></figcaption>
+        </figure>
+      </div>
+    </section>
     <section class="wrap section" id="precios">
       <div class="eyebrow">Un solo paquete</div><h2>Un pago. Acceso de por vida.</h2>
       <p class="intro">La oferta está disponible por tiempo limitado. Si compras durante la promoción, tu acceso no vence al terminar la oferta.</p>
