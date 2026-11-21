@@ -6,6 +6,7 @@ import queue
 import io
 import os
 import functools
+from html import escape as escape_html
 import re
 import time
 from datetime import datetime
@@ -66,9 +67,21 @@ purchases_col = LazyCollection('purchases')
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY') or os.environ.get('STRIPE_API_KEY') or ''
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PLANS = {
-    'estandar': {'name': 'ScrappSA Estándar', 'amount': 54900},
-    'pro': {'name': 'ScrappSA Pro', 'amount': 79900},
+    'estandar': {
+        'name': 'ScrappSA Estándar', 'amount': 54900,
+        'description': 'Acceso individual de por vida a ScrappSA. Pago único, sin mensualidades.',
+        'access_type': 'lifetime',
+    },
 }
+
+@app.context_processor
+def standard_offer_context():
+    selected = STRIPE_PLANS['estandar']
+    return {'standard_offer': {
+        **selected, 'price': f"${selected['amount'] / 100:,.0f} MXN",
+        'access': 'Acceso de por vida', 'availability': 'Oferta por tiempo limitado',
+    }}
+
 
 def ensure_indexes():
     try:
@@ -381,8 +394,9 @@ def register():
                 }
                 session['purchase_verified'] = purchase
 
-    if not purchase:
-        return redirect(url_for('landing'))
+    if not purchase or purchase.get('demo'):
+        session.pop('purchase_verified', None)
+        return redirect(url_for('checkout'))
 
     if stripe.api_key:
         stripe_session_id = purchase.get('stripe_session_id', '')
@@ -420,7 +434,8 @@ def register():
                     'created_at': datetime.utcnow(),
                     'is_active': True,
                     'is_admin': False,
-                    'plan': purchase.get('plan', 'estandar'),
+                    'plan': 'estandar',
+                    'access_type': 'lifetime',
                     'purchase_verified': True,
                 })
                 session['user_id'] = str(inserted.inserted_id)
@@ -885,6 +900,7 @@ def index():
     return render_template("index.html",
         username=session.get('username'),
         is_admin=session.get('is_admin', False),
+        ai_available=bool(os.environ.get('ANTHROPIC_API_KEY')),
     )
 
 
@@ -1145,15 +1161,15 @@ def download(job_id: str, fmt: str):
 
 @app.route("/checkout", methods=['GET', 'POST'])
 def checkout():
-    plan = (request.values.get('plan') or 'estandar').strip().lower()
-    if plan not in ('estandar', 'pro'):
-        plan = 'estandar'
+    # One offer for all new purchases, including links to retired plans.
+    plan = 'estandar'
+    stripe_configured = bool(stripe.api_key)
 
     if request.method == 'POST':
         name = (request.form.get('name') or '').strip()
         email = (request.form.get('email') or '').strip().lower()
-        if not name or not email:
-            return render_template("checkout.html", plan=plan, success=False, error='Completa tu nombre y correo electrónico.')
+        if not name or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
+            return render_template('checkout.html', plan=plan, stripe_configured=stripe_configured, error='Completa tu nombre e ingresa un correo electrónico válido.'), 400
 
         if stripe.api_key:
             try:
@@ -1163,23 +1179,21 @@ def checkout():
                     customer_email=email,
                     line_items=[{'price_data': {
                         'currency': 'mxn',
-                        'product_data': {'name': selected['name']},
+                        'product_data': {'name': selected['name'], 'description': selected['description']},
                         'unit_amount': selected['amount'],
                     }, 'quantity': 1}],
-                    metadata={'plan': plan, 'name': name, 'email': email},
-                    payment_intent_data={'metadata': {'plan': plan, 'name': name, 'email': email}},
+                    metadata={'plan': plan, 'name': name, 'email': email, 'access_type': 'lifetime'},
+                    payment_intent_data={'metadata': {'plan': plan, 'name': name, 'email': email, 'access_type': 'lifetime'}},
                     success_url=url_for('checkout_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                     cancel_url=url_for('checkout', _external=True) + '?plan=' + plan,
                 )
                 return redirect(checkout_session.url, code=303)
-            except Exception as exc:
-                return render_template("checkout.html", plan=plan, success=False, error=f'No se pudo iniciar Stripe: {str(exc)}')
+            except Exception:
+                app.logger.exception('No se pudo iniciar el pago con Stripe')
+                return render_template('checkout.html', plan=plan, stripe_configured=True, error='No se pudo abrir el pago. Intenta de nuevo; tu acceso se activa cuando el pago se confirma.'), 502
 
-        session['purchase_verified'] = {
-            'plan': plan, 'name': name, 'email': email,
-            'verified': True, 'demo': True,
-        }
-        return redirect(url_for('register'))
+        return render_template('checkout.html', plan=plan, stripe_configured=False,
+                               error='El pago en línea no está disponible en este momento. Intenta más tarde.'), 503
 
     return render_template("checkout.html", plan=plan, success=False, stripe_configured=bool(stripe.api_key))
 
@@ -1222,7 +1236,7 @@ def checkout_success():
             base_url = os.environ.get('APP_BASE_URL', '').strip()
             register_path = '/register?purchase=' + create_purchase_token(session_id)
             register_url = f"{base_url.rstrip('/')}/register?purchase={create_purchase_token(checkout_session['id'])}" if base_url else url_for('register', purchase=create_purchase_token(checkout_session['id']), _external=True)
-            email_sent = send_purchase_confirmation(email, name, plan, register_url)
+            email_sent = send_purchase_confirmation(email, name, plan, register_url, amount_paid=session_data.get('amount_total'))
             purchases_col.update_one(
                 {'stripe_session_id': session_id},
                 {'$set': {
@@ -1270,23 +1284,29 @@ def stripe_webhook():
     return jsonify({'received': True}), 200
 
 
-def send_purchase_confirmation(email: str, name: str, plan: str, register_url: str = '') -> bool:
+def send_purchase_confirmation(email: str, name: str, plan: str, register_url: str = '', amount_paid=None) -> bool:
     api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if not api_key or not email:
         return False
 
     sender = os.environ.get('RESEND_FROM_EMAIL', 'ScrappSA <onboarding@resend.dev>').strip()
-    plan_name = 'Pro' if plan == 'pro' else 'Estándar'
-    amount = '$799 MXN' if plan == 'pro' else '$549 MXN'
+    plan_name = 'Estándar'
+    cents = STRIPE_PLANS['estandar']['amount'] if amount_paid is None else amount_paid
+    amount = f'${cents / 100:,.2f} MXN'
+    safe_name = escape_html(name or 'comprador')
+    safe_email = escape_html(email)
+    safe_register_url = escape_html(register_url, quote=True)
 
     subject = f'Pago confirmado — ScrappSA {plan_name}'
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#111827">
       <h1 style="margin-bottom:8px">Pago confirmado</h1>
-      <p>Hola {name or 'comprador'},</p>
+      <p>Hola {safe_name},</p>
       <p>Tu compra de <strong>ScrappSA {plan_name}</strong> por <strong>{amount}</strong> fue confirmada.</p>
-      <p>Ya puedes crear tu cuenta con el correo <strong>{email}</strong>.</p>
-      {f'<p><a href="{register_url}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f5c800;color:#111827;text-decoration:none;font-weight:700">Crear mi cuenta</a></p>' if register_url else ''}
+      <p>Tu acceso es de por vida: un solo pago, sin mensualidades ni renovación automática. El fin de la oferta no cambia la vigencia de tu acceso.</p>
+      <p>Incluye el directorio de empresas de México, listas de prospectos, exportaciones y las herramientas de Google Maps y actividad económica.</p>
+      <p>Ya puedes crear tu cuenta con el correo <strong>{safe_email}</strong>.</p>
+      {f'<p><a href="{safe_register_url}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f5c800;color:#111827;text-decoration:none;font-weight:700">Crear mi cuenta</a></p>' if register_url else ''}
       <p style="color:#6b7280;font-size:13px">Si no realizaste esta compra, responde a este correo.</p>
     </div>
     """

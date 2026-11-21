@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Checkout — ScrappSA</title>
+  <title>Acceso de por vida · ScrappSA Estándar</title>
   <style>
     :root { --yellow:#f5c800; --yellow-dark:#d4ac00; --yellow-light:#fffbe6; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --paper:#f3f4f6; --dark:#1a1a2e; --green:#16a34a; }
     * { box-sizing:border-box; }
@@ -26,13 +26,7 @@
     .card { border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:0 8px 24px rgba(17,24,39,.06); }
     .card-body { padding:28px; }
     .card h2 { margin:0 0 22px; font-size:1.15rem; }
-    .plans { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
-    .plan-radio { position:relative; }
-    .plan-radio input { position:absolute; opacity:0; }
-    .plan-radio label { display:block; min-height:82px; padding:14px; border:1.5px solid var(--line); border-radius:9px; cursor:pointer; }
-    .plan-radio input:checked + label { border:2px solid var(--yellow-dark); background:var(--yellow-light); }
-    .plan-name { display:block; font-weight:800; }
-    .plan-price { display:block; margin-top:7px; font-size:1.15rem; }
+    .offer { border:1px solid var(--yellow-dark); background:var(--yellow-light); border-radius:9px; padding:20px; margin-bottom:24px; line-height:1.7; }
     .fields { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     .field { display:flex; flex-direction:column; gap:7px; }
     .field.full { grid-column:1 / -1; }
@@ -51,63 +45,42 @@
     .fine { margin-top:12px; color:var(--muted); font-size:.72rem; line-height:1.5; text-align:center; }
     .back { display:inline-block; margin-top:18px; color:#374151; font-size:.82rem; font-weight:700; }
     @media (max-width:820px) { .grid { grid-template-columns:1fr; } .summary { position:static; } }
-    @media (max-width:570px) { .wrap { padding:0 20px; } .checkout-head { padding-top:32px; } .plans, .fields { grid-template-columns:1fr; } .field.full { grid-column:auto; } .card-body { padding:20px; } }
+    @media (max-width:570px) { .wrap { padding:0 20px; } .checkout-head { padding-top:32px; } .fields { grid-template-columns:1fr; } .field.full { grid-column:auto; } .card-body { padding:20px; } }
+    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .fine, .back, label.field-label, .secure { font-size:.875rem; }
+    .offer-copy { color:var(--muted); line-height:1.6; }
+    .card-body > p { line-height:1.6; color:#4b5563; }
+    .offer strong { display:block; font-size:1.15rem; }
+    .offer p { margin:8px 0; color:#4b5563; }
+    .demo-notice { font-size:.95rem; line-height:1.6; }
+    @media (max-width:570px) { .nav { gap:12px; } .secure { max-width:150px; text-align:right; } }
   </style>
 </head>
 <body>
-  <header><div class="wrap nav"><a class="brand" href="/"><span class="mark">S</span> ScrappSA</a><span class="secure">🔒 Pago seguro · Demostración</span></div></header>
-  <main>
-    <div class="wrap">
-      <div class="checkout-head"><div class="eyebrow">Finalizar compra</div><h1>Completa tu acceso</h1><p>Revisa tu plan y confirma tus datos.</p></div>
-      {% if not stripe_configured %}<div class="demo-notice"><strong>Vista de demostración:</strong> este formulario no procesa pagos reales ni crea cobros.</div>{% endif %}
-      {% if success %}<div class="demo-notice" style="border-color:#bbf7d0;background:#f0fdf4;color:#166534"><strong>Datos recibidos:</strong> la selección fue registrada solo como demostración. No se realizó ningún cargo.</div>{% endif %}
-      <form method="POST" action="/checkout">
-        <div class="grid">
-          <div>
-            <section class="card card-body">
-              <h2>1. Elige tu plan</h2>
-              <div class="plans">
-                <div class="plan-radio"><input id="standard" type="radio" name="plan" value="estandar" {% if plan != 'pro' %}checked{% endif %}><label for="standard"><span class="plan-name">Estándar</span><span class="plan-price">$549 MXN</span></label></div>
-                <div class="plan-radio"><input id="pro" type="radio" name="plan" value="pro" {% if plan == 'pro' %}checked{% endif %}><label for="pro"><span class="plan-name">Pro</span><span class="plan-price">$799 MXN</span></label></div>
-              </div>
-              <h2>2. Datos de compra</h2>
-              <div class="fields">
-                <div class="field"><label class="field-label" for="name">Nombre completo</label><input id="name" name="name" autocomplete="name" required></div>
-                <div class="field"><label class="field-label" for="email">Correo electrónico</label><input id="email" name="email" type="email" autocomplete="email" required></div>
-                <div class="field full"><label class="field-label" for="company">Empresa / razón social <span style="color:#9ca3af">(opcional)</span></label><input id="company" name="company" autocomplete="organization"></div>
-              </div>
-            </section>
-            <section class="card card-body" style="margin-top:22px">
-              <h2>3. Método de pago</h2>
-              <div class="payment-options">
-                <label class="payment"><input type="radio" name="payment" value="tarjeta" checked> Tarjeta de crédito o débito · Apple Pay · Google Pay</label>
-              </div>
-            </section>
-          </div>
-          <aside class="card card-body summary">
-            <h2>Resumen del pedido</h2>
-            <div class="summary-row"><span id="summary-plan">Plan Estándar</span><strong id="summary-price">$549 MXN</strong></div>
-            <div class="summary-row"><span>Acceso de demostración</span><strong>$0 MXN</strong></div>
-            <div class="summary-row total"><span>Total</span><span id="summary-total">$549 MXN</span></div>
-            <button class="btn" type="submit">Continuar con la compra →</button>
-            <p class="fine">Al continuar aceptas las condiciones de uso y el aviso de privacidad.</p>
-            <a class="back" href="/#precios">← Volver a planes</a>
-          </aside>
-        </div>
-      </form>
-    </div>
-  </main>
-  <script>
-    const standard=document.getElementById('standard');
-    const pro=document.getElementById('pro');
-    function update(){
-      const selected=pro.checked?'Pro':'Estándar';
-      const price=pro.checked?'$799 MXN':'$549 MXN';
-      document.getElementById('summary-plan').textContent='Plan '+selected;
-      document.getElementById('summary-price').textContent=price;
-      document.getElementById('summary-total').textContent=price;
-    }
-    standard.addEventListener('change',update); pro.addEventListener('change',update); update();
-  </script>
+  <header><div class="wrap nav"><a class="brand" href="/"><span class="mark">S</span> ScrappSA</a><span class="secure">{% if stripe_configured %}Pago único con Stripe{% else %}Compra de acceso{% endif %}</span></div></header>
+  <main><div class="wrap">
+    <div class="checkout-head"><div class="eyebrow">{{ standard_offer.availability }}</div><h1>Tu acceso de por vida.</h1><p>{{ standard_offer.name }} · Un solo pago, sin mensualidades.</p></div>
+    {% if not stripe_configured %}<div class="demo-notice" role="status">El pago en línea no está disponible en este momento. Intenta más tarde; no se realizará ningún cargo desde este formulario.</div>{% endif %}
+    {% if error %}<div class="demo-notice" role="alert">{{ error }}</div>{% endif %}
+    <form method="POST" action="/checkout"><input type="hidden" name="plan" value="estandar">
+      <div class="grid"><div>
+        <section class="card card-body">
+          <h2>Tu paquete</h2><div class="offer"><strong>{{ standard_offer.name }}</strong><p>{{ standard_offer.price }} · {{ standard_offer.access }}</p><p>Directorio de empresas, filtros, listas y seguimiento, Google Maps, actividad económica y exportaciones CSV / JSON.</p><p>La oferta termina; tu acceso no vence al terminar la promoción.</p></div>
+          <h2>Datos para tu acceso</h2><div class="fields">
+            <div class="field"><label class="field-label" for="name">Nombre completo</label><input id="name" name="name" maxlength="120" value="{{ request.form.get('name', '') }}" autocomplete="name" required></div>
+            <div class="field"><label class="field-label" for="email">Correo electrónico</label><input id="email" name="email" type="email" maxlength="254" value="{{ request.form.get('email', '') }}" autocomplete="email" required></div>
+          </div><p class="offer-copy">Después del pago podrás crear tu cuenta con este correo.</p>
+        </section>
+        <section class="card card-body" style="margin-top:22px"><h2>Pago único</h2><p>Continuarás a Stripe para completar el pago. Las formas de pago disponibles se mostrarán allí según tu dispositivo y ubicación.</p></section>
+      </div><aside class="card card-body summary">
+        <h2>Resumen de tu compra</h2><div class="summary-row"><span>Paquete Estándar</span><strong>{{ standard_offer.price }}</strong></div>
+        <div class="summary-row"><span>Vigencia</span><strong>De por vida</strong></div><div class="summary-row"><span>Mensualidades</span><strong>Sin cargos recurrentes</strong></div>
+        <div class="summary-row total"><span>Total</span><span>{{ standard_offer.price }}</span></div>
+        <button class="btn" type="submit" {% if not stripe_configured %}disabled{% endif %}>{% if stripe_configured %}Pagar {{ standard_offer.price }}{% else %}Pago no disponible{% endif %}</button>
+        <p class="fine">Pago único por un acceso individual. El fin de la promoción no cambia la vigencia de tu acceso. Tu cuenta se habilita después de confirmar el pago.</p>
+        <a class="back" href="/#precios">Volver a la oferta</a>
+      </aside></div>
+    </form>
+  </div></main>
 </body>
 </html>

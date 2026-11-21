@@ -494,7 +494,7 @@
     <path d="M8 14C8 10.686 10.686 8 14 8s6 2.686 6 6-2.686 6-6 6" stroke="#f5c800" stroke-width="2" stroke-linecap="round"/>
     <circle cx="14" cy="14" r="2" fill="#f5c800"/>
   </svg>
-  <h1>ScrappSA <span>— Directorio y precios</span></h1>
+  <h1>ScrappSA <span>— Empresas y prospectos</span></h1>
   <div class="header-user">
     <span class="header-username">{{ username }}</span>
     {% if is_admin %}
@@ -515,11 +515,12 @@
 
   <!-- ── Panel izquierdo ── -->
   <aside class="panel">
-    <h2>Tipo de búsqueda</h2>
+    <h2>Explora tu mercado</h2>
 
 
 	    <div id="activity-form" class="hidden">
 	      <h2>Actividad económica</h2>
+          <p style="font-size:.875rem;color:#6b7280;line-height:1.6;margin-bottom:18px">Explora negocios de Google Maps por giro y zona. Los conteos pueden incluir un negocio en más de un giro.</p>
 
 	      <div class="field">
 	        <label>Ciudad / Zona</label>
@@ -543,12 +544,13 @@
 	      </div>
 
 	      <div class="check-row">
-	        <label><input id="inp-activity-browser" type="checkbox" /> Scroll real por giro</label>
+	        <label><input id="inp-activity-browser" type="checkbox" /> Buscar más resultados por giro</label>
 	      </div>
 	    </div>
 
     <div id="maps-form" class="hidden">
       <h2>Google Maps</h2>
+      <p style="font-size:.875rem;color:#6b7280;line-height:1.6;margin-bottom:18px">Consulta información pública disponible. Las búsquedas pueden tardar; los datos de contacto y las coincidencias de responsables requieren revisión.</p>
 
       <div class="field">
         <label>Negocio / Lugar</label>
@@ -577,13 +579,13 @@
       </div>
 
       <div class="check-row">
-        <label><input id="inp-maps-browser" type="checkbox" checked /> Scroll real en Google Maps</label>
-        <label><input id="inp-maps-enrich" type="checkbox" /> Abrir detalle de cada lugar</label>
-        <label><input id="inp-maps-linkedin" type="checkbox" /> Buscar CEO / dueño en LinkedIn</label>
+        <label><input id="inp-maps-browser" type="checkbox" checked /> Buscar más resultados en Google Maps</label>
+        <label><input id="inp-maps-enrich" type="checkbox" /> Consultar la ficha de cada negocio</label>
+        <label><input id="inp-maps-linkedin" type="checkbox" /> Buscar posibles responsables en LinkedIn</label>
         <label><input id="inp-maps-open" type="checkbox" /> Abierto ahora</label>
         <label><input id="inp-maps-phone" type="checkbox" /> Solo con teléfono</label>
         <label><input id="inp-maps-web" type="checkbox" /> Solo con sitio web</label>
-        <label><input id="inp-maps-reviews" type="checkbox" /> Resumir actividad con IA ✦</label>
+        <label><input id="inp-maps-reviews" type="checkbox" {% if not ai_available %}disabled{% endif %} /> Resumir reseñas con IA{% if not ai_available %} (no disponible){% endif %}</label>
       </div>
     </div>
 
@@ -650,7 +652,7 @@
           </a>
           <a class="btn-dl csv hidden" id="dl-csv" href="#">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            CSV / Excel
+            CSV (abrir en Excel)
           </a>
         </div>
       </div>
@@ -716,13 +718,13 @@ function setMode(mode) {
 
 	  $('empty-state').querySelector('p').textContent =
 	    mode === 'economic_activity'
-	      ? 'Ingresa una zona para medir actividad económica'
+	      ? 'Explora negocios por giro en una zona'
 	      : mode === 'maps'
 	      ? 'Busca lugares y negocios en Google Maps'
 	      : 'Ingresa un oficio y ciudad para comenzar';
 	  $('empty-help').textContent =
 	    mode === 'economic_activity'
-	      ? 'Se peinarán giros comunes y se agruparán los negocios encontrados'
+	      ? 'Compara coincidencias de Google Maps por giro; los resultados no son un censo completo.'
 	      : mode === 'maps'
 	      ? 'Personaliza zona, radio, calificación y datos requeridos'
       : 'Los resultados aparecerán aquí en tiempo real';
@@ -769,7 +771,7 @@ $('inp-maps-location').addEventListener('keydown', e => { if (e.key === 'Enter')
 	  $('log-output').innerHTML = '';
 	  $('log-spinner').classList.remove('hidden');
 	  $('log-title').textContent = isActivity
-	    ? `Peinando actividad económica en ${location}…`
+	    ? `Explorando actividad económica en ${location}…`
 	    : isMaps
 	    ? `Buscando "${query}" en Google Maps…`
     : `Buscando "${query}" en ${location}…`;
@@ -836,7 +838,7 @@ function appendLog(msg, cls = '') {
 	async function onJobDone(job_id, count) {
 	  $('log-spinner').classList.add('hidden');
 	  $('log-title').textContent = currentMode === 'economic_activity'
-	    ? `Listo — ${count} negocios clasificados`
+	    ? `Listo — ${count} coincidencias por giro`
 	    : currentMode === 'maps'
 	    ? `Listo — ${count} lugares encontrados`
     : `Listo — ${count} resultados únicos encontrados`;
@@ -868,6 +870,7 @@ function appendLog(msg, cls = '') {
 	    const withPhone = r.reduce((sum, row) => sum + Number(row.con_telefono || 0), 0);
 	    const withWeb = r.reduce((sum, row) => sum + Number(row.con_sitio_web || 0), 0);
 	    $('st-total').textContent = totalBusinesses;
+    $('st-total').nextElementSibling.textContent = 'Coincidencias por giro';
 	    $('st-tel').textContent = r.filter(x => Number(x.conteo || 0) > 0).length;
 	    $('st-web').textContent = withPhone;
 	    $('st-wa').textContent = withWeb;
@@ -884,7 +887,7 @@ function appendLog(msg, cls = '') {
     $('st-web').textContent = avg;
     $('st-wa').textContent = r.filter(x => x.sitio_web).length;
     $('st-lbl-2').textContent = 'Con teléfono';
-	    $('st-lbl-3').textContent = 'Rating prom.';
+	    $('st-lbl-3').textContent = 'Calificación prom.';
 	    $('st-lbl-4').textContent = 'Con sitio web';
 	  } else {
 	    $('st-total').textContent = r.length;
@@ -920,14 +923,14 @@ function appendLog(msg, cls = '') {
         <th data-col="calificacion">Rating <i class="sort-icon">↕</i></th>
         <th data-col="telefono">Teléfono <i class="sort-icon">↕</i></th>
         <th data-col="email">Correo <i class="sort-icon">↕</i></th>
-        <th data-col="resumen_actividad">Actividad / Resumen IA <i class="sort-icon">↕</i></th>
-        <th data-col="lider_nombre">Líder <i class="sort-icon">↕</i></th>
+        <th data-col="resumen_actividad">Resumen de reseñas <i class="sort-icon">↕</i></th>
+        <th data-col="lider_nombre">Posible responsable <i class="sort-icon">↕</i></th>
         <th data-col="lider_cargo">Cargo <i class="sort-icon">↕</i></th>
         <th data-col="linkedin_url">LinkedIn <i class="sort-icon">↕</i></th>
         <th data-col="google_maps_url">Google Maps <i class="sort-icon">↕</i></th>
       </tr>
     `;
-    $('filter-input').placeholder = 'Filtrar por nombre, correo, teléfono, rating o estado…';
+    $('filter-input').placeholder = 'Filtrar por nombre, correo, teléfono, calificación o estado…';
   } else {
     head.innerHTML = `
       <tr>
@@ -1076,7 +1079,7 @@ function renderLider(r) {
   if (!nombre) return '—';
   const badgeClass = conf === 'alta' ? 'conf-alta' : conf === 'media' ? 'conf-media' : conf === 'baja' ? 'conf-baja' : '';
   const badge = badgeClass
-    ? `<span class="conf-badge ${badgeClass}">${esc(conf)}</span>`
+    ? `<span class="conf-badge ${badgeClass}" title="Confianza de la coincidencia; verifica la fuente">${esc(conf)}</span>`
     : '';
   return esc(nombre) + badge;
 }

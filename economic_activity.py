@@ -83,7 +83,7 @@ def scan_activity(location: str, filters: Optional[dict] = None, progress=None) 
     rows = []
     global_seen = set()
 
-    log(f"Peinando actividad economica en {location}...")
+    log(f"Explorando actividad económica en {location}...")
     for index, giro in enumerate(giros, start=1):
         log(f"Giro {index}/{len(giros)}: {giro}")
         try:

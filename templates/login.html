@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ScrapSA — Iniciar sesión</title>
+  <title>ScrappSA · Iniciar sesión</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -128,13 +128,13 @@
     <path d="M8 14C8 10.686 10.686 8 14 8s6 2.686 6 6-2.686 6-6 6" stroke="#f5c800" stroke-width="2" stroke-linecap="round"/>
     <circle cx="14" cy="14" r="2" fill="#f5c800"/>
   </svg>
-  <h1>ScrappSA <span>— Directorio y precios</span></h1>
+  <h1>ScrappSA <span>— Empresas y prospectos</span></h1>
 </header>
 
 <div class="login-wrap">
   <div class="login-card">
     <h2>Iniciar sesión</h2>
-    <p>Ingresa tus credenciales para continuar</p>
+    <p>Entra a tu directorio, listas y herramientas de prospección.</p>
 
     {% if error %}
     <div class="error-msg">{{ error }}</div>
@@ -142,7 +142,7 @@
 
     <form method="POST" action="/login">
       <div class="field">
-        <label>Correo electrónico / usuario</label>
+        <label>Correo electrónico</label>
         <input type="email" name="username" autocomplete="username" required autofocus />
       </div>
       <div class="field">
@@ -151,6 +151,7 @@
       </div>
       <button type="submit" class="btn-login">Entrar</button>
     </form>
+    <p style="margin-top:22px;font-size:.875rem;line-height:1.6">¿Aún no tienes acceso? <a href="/#precios" style="color:#6d5700;font-weight:700">Conoce el paquete Estándar de por vida</a>.</p>
   </div>
 </div>
 
