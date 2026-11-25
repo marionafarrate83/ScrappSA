@@ -68,7 +68,7 @@ stripe.api_key = os.environ.get('STRIPE_SECRET_KEY') or os.environ.get('STRIPE_A
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PLANS = {
     'estandar': {
-        'name': 'ScrappSA Estándar', 'amount': 54900,
+        'name': 'Scrapsa Estándar', 'amount': 100,
         'description': 'Acceso individual de por vida a ScrappSA. Pago único, sin mensualidades.',
         'access_type': 'lifetime',
     },
