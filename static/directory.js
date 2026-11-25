@@ -1,13 +1,14 @@
 const el = id => document.getElementById(id);
 const root = el('directory-workspace');
 const number = value => Number(value).toLocaleString('es-MX');
+const plural = (value, one, many) => `${number(value)} ${value === 1 ? one : many}`;
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const selected = new Map();
 const statuses = ['Nuevo', 'Contactado', 'Interesado', 'Cliente', 'Descartado'];
 let rows = [], page = 1, total = 0, pages = 1, score = 1, metadata = null;
 let controller = null, municipalityController = null, timer = null, lists = [], activeList = null, database = null;
-let detailRecord = null, pendingRecords = [], loading = false;
+let detailRecord = null, pendingRecords = [], pendingFromSelection = false, loading = false;
 let listWriteQueue = Promise.resolve();
 
 function notify(message) {
@@ -74,6 +75,7 @@ function parameters() {
 function updateSelection() {
   el('dir-selection').hidden = !selected.size;
   el('dir-selected-count').textContent = number(selected.size);
+  el('dir-selected-label').textContent = selected.size === 1 ? 'seleccionada' : 'seleccionadas';
   const count = rows.filter(row => selected.has(row.id)).length;
   el('dir-select-page').checked = !!rows.length && count === rows.length;
   el('dir-select-page').indeterminate = count > 0 && count < rows.length;
@@ -203,14 +205,16 @@ function mutateList(listId, change) {
   listWriteQueue = operation;
   return operation;
 }
-function openAdd(records) {
+function openAdd(records, fromSelection = false) {
   if (!database) throw new Error('Las listas requieren almacenamiento local habilitado en el navegador.');
   if (!records.length) throw new Error('Selecciona al menos una empresa.');
   pendingRecords = records;
+  pendingFromSelection = fromSelection;
   el('dir-list-error').hidden = true;
   el('dir-target-list').innerHTML = option('', 'Crear una lista nueva') + lists.map(list => option(list.id, list.name)).join('');
-  el('dir-new-list-name').value = ''; el('dir-new-list-name').disabled = false;
-  el('dir-add-description').textContent = `${number(records.length)} empresas seleccionadas. Las empresas repetidas se conservan una sola vez.`;
+  el('dir-target-list').value = activeList || '';
+  el('dir-new-list-name').value = ''; el('dir-new-list-name').disabled = !!activeList;
+  el('dir-add-description').textContent = `${plural(records.length, 'empresa seleccionada', 'empresas seleccionadas')}. Las empresas repetidas se conservan una sola vez.`;
   el('dir-list-dialog').showModal();
 }
 async function addToList(event) {
@@ -227,18 +231,20 @@ async function addToList(event) {
   activeList = list.id;
   await refreshLists();
   el('dir-list-dialog').close();
-  notify(`${number(additions.length)} empresas agregadas a «${list.name}».`);
+  if (pendingFromSelection) { selected.clear(); updateSelection(); }
+  notify(`${plural(additions.length, 'empresa agregada', 'empresas agregadas')} a «${list.name}».`);
 }
 function renderLists() {
-  el('dir-lists-nav').innerHTML = lists.map(list => `<button type="button" data-list="${escape(list.id)}" class="${list.id === activeList ? 'is-active' : ''}" aria-pressed="${list.id === activeList}">${escape(list.name)}<span class="dir-sub">${number(list.items.length)} empresas</span></button>`).join('');
+  el('dir-lists-nav').innerHTML = lists.map(list => `<button type="button" data-list="${escape(list.id)}" class="${list.id === activeList ? 'is-active' : ''}" aria-pressed="${list.id === activeList}">${escape(list.name)}<span class="dir-sub">${plural(list.items.length, 'empresa', 'empresas')}</span></button>`).join('');
   const list = lists.find(list => list.id === activeList);
   if (!list) { el('dir-list-content').innerHTML = '<div class="dir-empty"><h3>Tus oportunidades, en un solo lugar.</h3><p>Selecciona empresas en el directorio y agrégalas a una lista.<br>Aquí podrás darles seguimiento y guardar notas.</p></div>'; return; }
-  el('dir-list-content').innerHTML = `<div class="dir-resultsbar"><div><strong>${escape(list.name)}</strong><small>${number(list.items.length)} empresas · Guardado en este navegador</small></div><div class="dir-actions"><button type="button" class="dir-btn" id="dir-list-export">Exportar CSV</button><button type="button" class="dir-text-btn" id="dir-list-delete">Eliminar lista</button></div></div><div class="dir-searchbar"><input type="search" class="dir-list-note" style="width:100%" id="dir-list-query" aria-label="Buscar en la lista" placeholder="Buscar empresa o nota…"><select id="dir-list-filter" aria-label="Filtrar seguimiento">${option('','Todo el seguimiento') + statuses.map(s => option(s,s)).join('')}</select></div><div class="dir-table-wrap"><table class="dir-table"><thead><tr><th>Empresa</th><th>Contacto</th><th>Seguimiento</th><th>Nota</th><th>Quitar</th></tr></thead><tbody id="dir-list-rows"></tbody></table></div>`;
-  el('dir-list-export').onclick = guard(async () => { await listWriteQueue; const saved = lists.find(item => item.id === list.id); exportLocal(saved.items, saved.name); });
+  el('dir-list-content').innerHTML = `<div class="dir-resultsbar"><div><strong>${escape(list.name)}</strong><small>${plural(list.items.length, 'empresa', 'empresas')} · Guardado en este navegador</small></div><div class="dir-actions">${list.items.length ? '<button type="button" class="dir-btn" id="dir-list-export">Exportar CSV</button>' : ''}<button type="button" class="dir-text-btn" id="dir-list-delete">Eliminar lista</button></div></div>${list.items.length ? `<div class="dir-searchbar"><input type="search" class="dir-list-note" style="width:100%" id="dir-list-query" aria-label="Buscar en la lista" placeholder="Buscar empresa o nota…"><select id="dir-list-filter" aria-label="Filtrar seguimiento">${option('','Todo el seguimiento') + statuses.map(s => option(s,s)).join('')}</select></div><div class="dir-table-wrap"><table class="dir-table"><thead><tr><th>Empresa</th><th>Contacto</th><th>Seguimiento</th><th>Nota</th><th>Quitar</th></tr></thead><tbody id="dir-list-rows"></tbody></table></div>` : '<div class="dir-empty"><h3>Esta lista está vacía.</h3><p>Busca empresas, selecciónalas y pulsa «Agregar a lista».</p><button type="button" class="dir-btn dir-primary" id="dir-list-search">Buscar empresas</button></div>'}`;
   el('dir-list-delete').onclick = guard(async () => {
     if (!confirm(`¿Eliminar la lista «${list.name}» y sus notas?`)) return;
     await dbRequest('readwrite', store => store.delete(list.id)); await refreshLists();
   });
+  if (!list.items.length) { el('dir-list-search').onclick = () => switchView('search'); return; }
+  el('dir-list-export').onclick = guard(async () => { await listWriteQueue; const saved = lists.find(item => item.id === list.id); exportLocal(saved.items, saved.name); });
   el('dir-list-query').oninput = renderListRows;
   el('dir-list-filter').onchange = renderListRows;
   renderListRows();
@@ -311,7 +317,7 @@ root.addEventListener('change', guard(async event => {
   }
 }));
 el('dir-clear-selection').onclick = () => { selected.clear(); updateSelection(); };
-el('dir-add-list').onclick = guard(() => openAdd([...selected.values()]));
+el('dir-add-list').onclick = guard(() => openAdd([...selected.values()], true));
 el('dir-export-selected').onclick = () => exportLocal([...selected.values()]);
 el('dir-export').onclick = guard(() => exportResults());
 el('dir-export-json').onclick = guard(() => exportResults('json'));

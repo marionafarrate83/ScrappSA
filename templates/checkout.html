@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acceso de por vida · Scrapsa Estándar</title>
+  <title>Pago único · Scrapsa Estándar</title>
   <style>
     :root { --yellow:#f5c800; --yellow-dark:#d4ac00; --yellow-light:#fffbe6; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --paper:#f3f4f6; --dark:#1a1a2e; --green:#16a34a; }
     * { box-sizing:border-box; }
@@ -59,7 +59,7 @@
 <body>
   <header><div class="wrap nav"><a class="brand" href="/"><span class="mark">S</span> Scrapsa</a><span class="secure">{% if stripe_configured %}Pago único con Stripe{% else %}Compra de acceso{% endif %}</span></div></header>
   <main><div class="wrap">
-    <div class="checkout-head"><div class="eyebrow">{{ standard_offer.availability }}</div><h1>Tu acceso de por vida.</h1><p>{{ standard_offer.name }} · Un solo pago, sin mensualidades.</p></div>
+    <div class="checkout-head"><div class="eyebrow">{{ standard_offer.availability }}</div><h1>Un pago único.</h1><p>{{ standard_offer.name }} · Sin mensualidades.</p></div>
     {% if not stripe_configured %}<div class="demo-notice" role="status">El pago en línea no está disponible en este momento. Intenta más tarde; no se realizará ningún cargo desde este formulario.</div>{% endif %}
     {% if error %}<div class="demo-notice" role="alert">{{ error }}</div>{% endif %}
     <form method="POST" action="/checkout"><input type="hidden" name="plan" value="estandar">
@@ -74,7 +74,7 @@
         <section class="card card-body" style="margin-top:22px"><h2>Pago único</h2><p>Continuarás a Stripe para completar el pago. Las formas de pago disponibles se mostrarán allí según tu dispositivo y ubicación.</p></section>
       </div><aside class="card card-body summary">
         <h2>Resumen de tu compra</h2><div class="summary-row"><span>Paquete Estándar</span><strong>{{ standard_offer.price }}</strong></div>
-        <div class="summary-row"><span>Vigencia</span><strong>De por vida</strong></div><div class="summary-row"><span>Mensualidades</span><strong>Sin cargos recurrentes</strong></div>
+        <div class="summary-row"><span>Vigencia</span><strong>Sin vencimiento</strong></div><div class="summary-row"><span>Mensualidades</span><strong>Sin cargos recurrentes</strong></div>
         <div class="summary-row total"><span>Total</span><span>{{ standard_offer.price }}</span></div>
         <button class="btn" type="submit" {% if not stripe_configured %}disabled{% endif %}>{% if stripe_configured %}Pagar {{ standard_offer.price }}{% else %}Pago no disponible{% endif %}</button>
         <p class="fine">Pago único por un acceso individual. El fin de la promoción no cambia la vigencia de tu acceso. Tu cuenta se habilita después de confirmar el pago.</p>

@@ -69,7 +69,7 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PLANS = {
     'estandar': {
         'name': 'Scrapsa Estándar', 'amount': 52000,
-        'description': 'Acceso individual de por vida a Scrapsa. Pago único, sin mensualidades.',
+        'description': 'Acceso individual a Scrapsa. Pago único, sin mensualidades.',
         'access_type': 'lifetime',
     },
 }
@@ -79,7 +79,7 @@ def standard_offer_context():
     selected = STRIPE_PLANS['estandar']
     return {'standard_offer': {
         **selected, 'price': f"${selected['amount'] / 100:,.0f} MXN",
-        'access': 'Acceso de por vida', 'availability': 'Oferta por tiempo limitado',
+        'access': 'Pago único', 'availability': 'Oferta por tiempo limitado',
     }}
 
 
@@ -1303,7 +1303,7 @@ def send_purchase_confirmation(email: str, name: str, plan: str, register_url: s
       <h1 style="margin-bottom:8px">Pago confirmado</h1>
       <p>Hola {safe_name},</p>
       <p>Tu compra de <strong>Scrapsa {plan_name}</strong> por <strong>{amount}</strong> fue confirmada.</p>
-      <p>Tu acceso es de por vida: un solo pago, sin mensualidades ni renovación automática. El fin de la oferta no cambia la vigencia de tu acceso.</p>
+      <p>Es un pago único, sin mensualidades ni renovación automática. El fin de la oferta no cambia la vigencia de tu acceso.</p>
       <p>Incluye el directorio de empresas de México, listas de prospectos, exportaciones y las herramientas de Google Maps y actividad económica.</p>
       <p>Ya puedes crear tu cuenta con el correo <strong>{safe_email}</strong>.</p>
       {f'<p><a href="{safe_register_url}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f5c800;color:#111827;text-decoration:none;font-weight:700">Crear mi cuenta</a></p>' if register_url else ''}

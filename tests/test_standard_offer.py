@@ -24,7 +24,8 @@ class StandardOfferTests(unittest.TestCase):
             response = self.client.get(path)
             text = response.get_data(as_text=True)
             self.assertEqual(response.status_code, 200)
-            self.assertIn('de por vida', text.lower())
+            self.assertIn('pago único', text.lower())
+            self.assertNotIn('de por vida', text.lower())
             self.assertIn('$520 MXN', text)
             self.assertNotIn('$799', text)
             self.assertNotIn('Elegir Pro', text)
@@ -93,7 +94,7 @@ class StandardOfferTests(unittest.TestCase):
             self.assertTrue(application.send_purchase_confirmation('ana@example.com','<b>Ana</b>','estandar','https://example.com/register'))
         content=post.call_args.kwargs['json']
         self.assertIn('Estándar',content['subject'])
-        self.assertIn('de por vida',content['html'])
+        self.assertIn('pago único',content['html'])
         self.assertIn('$520.00 MXN',content['html'])
         self.assertIn('&lt;b&gt;Ana&lt;/b&gt;',content['html'])
         self.assertNotIn('<b>Ana</b>',content['html'])

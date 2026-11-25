@@ -39,15 +39,15 @@
       <div class="payment-dialog">
         <div class="success-mark" aria-hidden="true">✓</div>
         <h2 id="payment-title">Pago completado</h2>
-        <p>Tu pago de Scrapsa Estándar está confirmado. Crea tu cuenta para comenzar con tu acceso de por vida, sin mensualidades.</p>
+        <p>Tu pago de Scrapsa Estándar está confirmado. Crea tu cuenta para comenzar con tu acceso. Fue un pago único, sin mensualidades.</p>
         <button class="btn" type="button" id="close-payment-modal">Crear mi cuenta</button>
       </div>
     </div>
     <section class="card">
       <div class="eyebrow">Compra confirmada</div>
       <h1>Crea tu cuenta</h1>
-      <p class="intro">Tu acceso de por vida está listo. Crea las credenciales para consultar empresas y organizar tus prospectos.</p>
-      <div class="plan"><strong>Scrapsa Estándar</strong> · Acceso de por vida · Pago único</div>
+      <p class="intro">Tu acceso está listo. Crea las credenciales para consultar empresas y organizar tus prospectos.</p>
+      <div class="plan"><strong>Scrapsa Estándar</strong> · Pago único</div>
       {% if error %}<div class="error">{{ error }}</div>{% endif %}
       <form method="POST" action="/register">
         <div class="field"><label for="email">Correo electrónico</label><input id="email" name="email" type="email" value="{{ email }}" autocomplete="email" required></div>

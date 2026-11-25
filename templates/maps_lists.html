@@ -1,0 +1,14 @@
+<section id="maps-lists" class="dir-workspace maps-lists" data-owner="{{ username }}" aria-label="Listas de Maps" hidden>
+  <div class="dir-tabs" role="group" aria-label="Vista de Maps">
+    <button type="button" id="maps-tab-search" class="is-active" aria-pressed="true">Buscar en Maps</button>
+    <button type="button" id="maps-tab-lists" aria-pressed="false">Mis listas de Maps <span id="maps-list-count">0</span></button>
+  </div>
+  <div id="maps-alert" class="dir-alert" role="status" aria-live="polite" hidden></div>
+  <div id="maps-lists-view" class="dir-lists-view" hidden>
+    <aside class="dir-filters"><div class="dir-filter-title"><h3>Mis listas de Maps</h3></div><button type="button" id="maps-new-list" class="dir-btn dir-primary dir-block">Nueva lista</button><div id="maps-lists-nav" class="dir-lists-nav"></div><div class="dir-filter-note">Tus listas se guardan en este navegador para tu usuario. Exporta una copia antes de borrar los datos de navegación.</div></aside>
+    <main class="dir-results" id="maps-list-content"></main>
+  </div>
+</section>
+<div class="dir-workspace maps-dialog-host">
+  <dialog id="maps-list-dialog" class="dir-small-dialog"><form id="maps-list-form"><div class="dir-dialog-head"><h3>Agregar a una lista de Maps</h3><button type="button" class="dir-close" id="maps-dialog-close" aria-label="Cerrar">✕</button></div><p id="maps-add-description"></p><p id="maps-list-error" role="alert" hidden></p><label class="dir-field">Lista existente<select id="maps-target-list"></select></label><label class="dir-field">Nombre de la nueva lista<input id="maps-new-list-name" maxlength="80" placeholder="Ej. Farmacias Roma Norte"></label><button type="submit" class="dir-btn dir-primary dir-block">Guardar negocios</button></form></dialog>
+</div>

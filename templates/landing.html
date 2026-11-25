@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Busca en más de 2.5 millones de empresas de México por giro, estado y municipio. Consulta contactos disponibles y crea listas. Acceso de por vida.">
+  <meta name="description" content="Busca en más de 2.5 millones de empresas de México por giro, estado y municipio. Consulta contactos disponibles y crea listas. Pago único.">
   <title>Directorio de empresas en México | Scrapsa</title>
   <style>
     :root { --yellow:#f5c800; --yellow-dark:#d4ac00; --yellow-light:#fffbe6; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --paper:#f3f4f6; --dark:#1a1a2e; }
@@ -154,7 +154,7 @@
 <body>
   <header class="site-header"><div class="wrap nav">
     <a class="brand" href="/" aria-label="Scrapsa inicio"><span class="mark">S</span> Scrapsa</a>
-    <nav class="navlinks" aria-label="Navegación"><a href="#producto">Qué incluye</a><a href="#como-funciona">Cómo funciona</a><a href="#precios">Acceso de por vida</a><a class="btn" href="/login">Ingresar</a></nav>
+    <nav class="navlinks" aria-label="Navegación"><a href="#producto">Qué incluye</a><a href="#como-funciona">Cómo funciona</a><a href="#precios">Pago único</a><a class="btn" href="/login">Ingresar</a></nav>
   </div></header>
   <main>
     <section class="wrap hero">
@@ -162,8 +162,8 @@
         <div class="eyebrow">Prospección B2B · México</div>
         <h1>Encuentra empresas en México.<br>Organiza tus <em>prospectos.</em></h1>
         <p class="lead">Directorio con más de 2.5 millones de empresas de los 32 estados. Filtra por giro y ubicación, consulta los teléfonos, correos y sitios web disponibles y crea listas de prospectos para dar seguimiento.</p>
-        <div class="actions"><a class="btn btn-primary" href="/checkout">Obtener acceso de por vida</a><a class="btn btn-outline" href="#producto">Explorar funciones</a></div>
-        <div class="trust-row"><span>{{ standard_offer.price }} · Pago único</span><span>Sin mensualidades</span><span>{{ standard_offer.availability }}</span></div>
+        <div class="actions"><a class="btn btn-primary" href="/checkout">Obtener acceso con pago único</a><a class="btn btn-outline" href="#producto">Explorar funciones</a></div>
+        <div class="trust-row"><span>{{ standard_offer.price }} · {{ standard_offer.access }}</span><span>Sin mensualidades</span><span>{{ standard_offer.availability }}</span></div>
       </div>
       <div class="preview" aria-label="Ejemplo ilustrativo del directorio de Scrapsa">
         <div class="preview-head"><div class="preview-brand"><span class="mark">S</span><strong>Scrapsa</strong></div><span class="demo-label">Ejemplo ilustrativo</span></div>
@@ -227,17 +227,17 @@
       </div>
     </section>
     <section class="wrap section" id="precios">
-      <div class="eyebrow">Un solo paquete</div><h2>Directorio de empresas:<br>un pago, acceso de por vida.</h2>
+      <div class="eyebrow">Un solo paquete</div><h2>Directorio de empresas<br>con un pago único.</h2>
       <p class="intro">La oferta está disponible por tiempo limitado. Si compras durante la promoción, tu acceso no vence al terminar la oferta.</p>
       <div class="price-grid"><article class="price-card featured">
         <span class="price-tag">{{ standard_offer.availability }}</span><h3>{{ standard_offer.name }}</h3>
-        <div class="price">{{ standard_offer.price }}</div><p class="offer-copy"><strong>{{ standard_offer.access }}</strong> · Un pago único.<br>Sin mensualidades ni renovación automática.</p>
+        <div class="price">{{ standard_offer.price }}</div><p class="offer-copy"><strong>{{ standard_offer.access }}</strong><br>Sin mensualidades ni renovación automática.</p>
         <ul><li>Directorio de más de 2.5 millones de empresas de México</li><li>Filtros, fichas y datos de contacto disponibles</li><li>Listas personales, notas y seguimiento en el directorio</li><li>Búsquedas de negocios en Google Maps</li><li>Exploración de actividad económica por zona</li><li>Exportación de resultados en CSV y JSON</li><li>Acceso individual desde tu navegador</li></ul>
-        <a class="btn btn-primary" href="/checkout">Comprar acceso de por vida</a>
+        <a class="btn btn-primary" href="/checkout">Comprar con pago único</a>
         <p class="offer-copy">Después de confirmar el pago, crea tu cuenta e ingresa a Scrapsa.</p>
       </article></div>
       <div class="faq"><h3>Antes de comenzar</h3>
-        <details><summary>¿El acceso dura solo mientras está la oferta?</summary><p>No. La compra está disponible por tiempo limitado; el acceso que adquieres es de por vida, sin fecha de vencimiento y sin pagos recurrentes.</p></details>
+        <details><summary>¿El acceso dura solo mientras está la oferta?</summary><p>No. La compra está disponible por tiempo limitado; haces un pago único y tu acceso no tiene fecha de vencimiento ni pagos recurrentes.</p></details>
         <details><summary>¿De dónde vienen los datos del directorio de empresas?</summary><p>El directorio usa datos del DENUE de INEGI, edición 2026. Maps y Actividad económica consultan resultados públicos de Google Maps. La disponibilidad y vigencia de los contactos varía por establecimiento; no se garantiza un contacto para cada registro ni actualización automática del catálogo.</p></details>
         <details><summary>¿Dónde se guardan mis listas?</summary><p>Las listas del directorio se guardan en el navegador para tu usuario, con hasta 2,000 empresas por lista. Puedes agregar notas y seguimiento, y exportarlas a CSV. No se sincronizan entre equipos; descarga una copia antes de borrar los datos del navegador.</p></details>
         <details><summary>¿Puedo exportar y abrir los datos en Excel?</summary><p>Sí. Los resultados se exportan en CSV o JSON; las listas, en CSV. Excel puede abrir los archivos CSV. Cada exportación del directorio admite hasta 50,000 empresas: usa filtros para acotar búsquedas mayores.</p></details>

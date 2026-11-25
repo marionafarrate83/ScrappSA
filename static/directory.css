@@ -2,3 +2,5 @@
 /* Keep pagination and controls within reach while browsing a full page. */
 .dir-table-wrap { max-height: 65vh; overscroll-behavior: contain; }
 .dir-table th { position: sticky; top: 0; z-index: 1; background: #f8f9fb; }
+/* Listas de Maps */
+.maps-lists{width:100%;box-sizing:border-box;padding-bottom:0}.maps-dialog-host{padding:0;margin:0}.maps-lists [hidden],#maps-selection[hidden]{display:none!important}#maps-lists-view{margin-bottom:40px}.maps-check{width:36px;text-align:center}

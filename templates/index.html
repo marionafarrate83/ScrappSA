@@ -255,7 +255,7 @@
     }
 
     /* ── Panel derecho ── */
-    .main { min-height: 400px; }
+    .main { min-height: 400px; min-width: 0; }
 
     /* ── Estado vacío ── */
     .empty-state {
@@ -389,7 +389,7 @@
       background: #fff;
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      overflow: hidden;
+      overflow-x: auto;
     }
     table {
       width: 100%;
@@ -510,6 +510,7 @@
   <button class="mode-tab" id="mode-maps" type="button" aria-pressed="false">Maps</button>
 </nav>
 {% include 'directory.html' %}
+{% include 'maps_lists.html' %}
 
 <div class="layout hidden" id="legacy-workspace">
 
@@ -657,6 +658,8 @@
         </div>
       </div>
 
+      <div class="dir-selection" id="maps-selection" hidden><span><strong id="maps-selected-count">0</strong> <span id="maps-selected-label">seleccionados</span></span><button type="button" id="maps-add-list" class="dir-btn dir-primary">Agregar a lista</button><button type="button" id="maps-clear-selection" class="dir-text-btn">Quitar selección</button></div>
+
       <div class="filter-bar">
         <input id="filter-input" type="text" placeholder="Filtrar resultados…" />
       </div>
@@ -730,6 +733,7 @@ function setMode(mode) {
       : 'Los resultados aparecerán aquí en tiempo real';
   $('filter-input').value = '';
   renderHeader();
+  document.dispatchEvent(new CustomEvent('scrapsa:mode', { detail: mode }));
 }
 
 	// ── Botón Buscar ────────────────────────────────────────────
@@ -759,6 +763,7 @@ $('inp-maps-location').addEventListener('keydown', e => { if (e.key === 'Enter')
   }
 
   // Reset UI
+  document.dispatchEvent(new CustomEvent('scrapsa:search'));
   allResults = [];
   sortCol = null;
   sortAsc = true;
@@ -919,6 +924,7 @@ function appendLog(msg, cls = '') {
   } else if (currentMode === 'maps') {
     head.innerHTML = `
       <tr>
+        <th class="maps-check"><input type="checkbox" id="maps-select-all" aria-label="Seleccionar todos los resultados visibles"></th>
         <th data-col="nombre">Nombre <i class="sort-icon">↕</i></th>
         <th data-col="calificacion">Rating <i class="sort-icon">↕</i></th>
         <th data-col="telefono">Teléfono <i class="sort-icon">↕</i></th>
@@ -962,8 +968,9 @@ function renderTable(rows) {
 
 	  const tbody = $('results-body');
 	  if (!filtered.length) {
-	    const colspan = currentMode === 'maps' ? 9 : currentMode === 'economic_activity' ? 6 : 6;
+	    const colspan = currentMode === 'maps' ? 10 : currentMode === 'economic_activity' ? 6 : 6;
 	    tbody.innerHTML = `<tr><td class="no-rows" colspan="${colspan}">Sin resultados para este filtro</td></tr>`;
+	    if (currentMode === 'maps') document.dispatchEvent(new CustomEvent('scrapsa:maps-rendered', { detail: allResults }));
 	    return;
 	  }
 
@@ -984,6 +991,7 @@ function renderTable(rows) {
   if (currentMode === 'maps') {
     tbody.innerHTML = filtered.map(r => `
       <tr>
+        <td class="maps-check"><input type="checkbox" data-map-index="${allResults.indexOf(r)}" aria-label="Seleccionar ${esc(r.nombre)}"></td>
         <td class="td-name">${esc(r.nombre || '—')}</td>
         <td class="td-phone">${r.calificacion !== null && r.calificacion !== undefined ? esc(r.calificacion) : '—'}</td>
         <td class="td-phone">${esc(r.telefono)}</td>
@@ -1003,6 +1011,7 @@ function renderTable(rows) {
           : `<span class="status-pill">${esc(r.estado || 'Sin enlace')}</span>`}</td>
       </tr>
     `).join('');
+    document.dispatchEvent(new CustomEvent('scrapsa:maps-rendered', { detail: allResults }));
     return;
   }
 
@@ -1111,5 +1120,6 @@ function renderLider(r) {
 renderHeader();
 </script>
 <script type="module" src="{{ url_for('static', filename='directory.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='maps_lists.js') }}"></script>
 </body>
 </html>
