@@ -25,7 +25,7 @@ class StandardOfferTests(unittest.TestCase):
             text = response.get_data(as_text=True)
             self.assertEqual(response.status_code, 200)
             self.assertIn('de por vida', text.lower())
-            self.assertIn('$549 MXN', text)
+            self.assertIn('$520 MXN', text)
             self.assertNotIn('$799', text)
             self.assertNotIn('Elegir Pro', text)
             self.assertNotIn('demostración', text.lower())
@@ -39,7 +39,7 @@ class StandardOfferTests(unittest.TestCase):
         self.assertEqual(options['mode'], 'payment')
         self.assertEqual(options['metadata']['plan'], 'estandar')
         self.assertEqual(options['metadata']['access_type'], 'lifetime')
-        self.assertEqual(options['line_items'][0]['price_data']['unit_amount'], 54900)
+        self.assertEqual(options['line_items'][0]['price_data']['unit_amount'], 52000)
         self.assertNotIn('recurring', options['line_items'][0]['price_data'])
 
     def test_no_payment_configuration_cannot_grant_demo_access(self):
@@ -94,7 +94,7 @@ class StandardOfferTests(unittest.TestCase):
         content=post.call_args.kwargs['json']
         self.assertIn('Estándar',content['subject'])
         self.assertIn('de por vida',content['html'])
-        self.assertIn('$549.00 MXN',content['html'])
+        self.assertIn('$520.00 MXN',content['html'])
         self.assertIn('&lt;b&gt;Ana&lt;/b&gt;',content['html'])
         self.assertNotIn('<b>Ana</b>',content['html'])
 
