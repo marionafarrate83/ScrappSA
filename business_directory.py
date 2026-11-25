@@ -195,6 +195,6 @@ def create_blueprint(login_required):
             finally:
                 con.close()
         return Response(stream_with_context(generate()), mimetype='text/csv' if fmt == 'csv' else 'application/json',
-                        headers={'Content-Disposition': f'attachment; filename="ScrappSA_directorio.{fmt}"', 'Cache-Control': 'no-store'})
+                        headers={'Content-Disposition': f'attachment; filename="Scrapsa_directorio.{fmt}"', 'Cache-Control': 'no-store'})
 
     return bp

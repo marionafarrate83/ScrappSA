@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crear cuenta — ScrappSA</title>
+  <title>Crear cuenta — Scrapsa</title>
   <style>
     :root { --yellow:#f5c800; --yellow-dark:#d4ac00; --yellow-light:#fffbe6; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --paper:#f3f4f6; --dark:#1a1a2e; --red:#dc2626; }
     * { box-sizing:border-box; }
@@ -33,13 +33,13 @@
   </style>
 </head>
 <body>
-  <header><a class="brand" href="/"><span class="mark">S</span> ScrappSA</a></header>
+  <header><a class="brand" href="/"><span class="mark">S</span> Scrapsa</a></header>
   <main class="wrap">
     <div class="payment-modal" id="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-title">
       <div class="payment-dialog">
         <div class="success-mark" aria-hidden="true">✓</div>
         <h2 id="payment-title">Pago completado</h2>
-        <p>Tu pago de ScrappSA Estándar está confirmado. Crea tu cuenta para comenzar con tu acceso de por vida, sin mensualidades.</p>
+        <p>Tu pago de Scrapsa Estándar está confirmado. Crea tu cuenta para comenzar con tu acceso de por vida, sin mensualidades.</p>
         <button class="btn" type="button" id="close-payment-modal">Crear mi cuenta</button>
       </div>
     </div>
@@ -47,7 +47,7 @@
       <div class="eyebrow">Compra confirmada</div>
       <h1>Crea tu cuenta</h1>
       <p class="intro">Tu acceso de por vida está listo. Crea las credenciales para consultar empresas y organizar tus prospectos.</p>
-      <div class="plan"><strong>ScrappSA Estándar</strong> · Acceso de por vida · Pago único</div>
+      <div class="plan"><strong>Scrapsa Estándar</strong> · Acceso de por vida · Pago único</div>
       {% if error %}<div class="error">{{ error }}</div>{% endif %}
       <form method="POST" action="/register">
         <div class="field"><label for="email">Correo electrónico</label><input id="email" name="email" type="email" value="{{ email }}" autocomplete="email" required></div>

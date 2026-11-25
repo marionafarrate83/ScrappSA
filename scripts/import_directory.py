@@ -1,4 +1,4 @@
-"""Build ScrappSA's indexed catalogue from the upstream DENUE JavaScript data.
+"""Build Scrapsa's indexed catalogue from the upstream DENUE JavaScript data.
 
 Usage: python scripts/import_directory.py [--source /path/to/upstream/data]
 The source is parsed as JSON; JavaScript is never executed.

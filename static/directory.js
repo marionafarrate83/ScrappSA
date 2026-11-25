@@ -154,7 +154,7 @@ function exportLocal(records, name = 'seleccion') {
   const fields = ['id','name','legal_name','sector','size','staff','state_name','municipality','postal_code','address','phone','email','website','scian','activity','score','registered','status','note'];
   const headers = ['ID','Empresa','Razón social','Sector','Tamaño','Personal','Estado','Municipio','Código postal','Dirección','Teléfono','Email','Sitio web','SCIAN','Actividad','Calidad','Registro DENUE','Seguimiento','Nota'];
   const csv = '\ufeff' + [headers, ...records.map(row => fields.map(key => row[key]))].map(row => row.map(csvCell).join(',')).join('\r\n');
-  saveFile(new Blob([csv], {type:'text/csv;charset=utf-8'}), `ScrappSA_${name.replace(/[^\p{L}\p{N}-]/gu, '_').slice(0,60)}.csv`);
+  saveFile(new Blob([csv], {type:'text/csv;charset=utf-8'}), `Scrapsa_${name.replace(/[^\p{L}\p{N}-]/gu, '_').slice(0,60)}.csv`);
 }
 async function exportResults(format = 'csv') {
   if (loading) throw new Error('Espera a que termine la búsqueda para exportar.');
@@ -164,7 +164,7 @@ async function exportResults(format = 'csv') {
   notify('Preparando la exportación…');
   const response = await fetch(`/api/directory/export?${params}`);
   if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'No se pudo exportar.'); }
-  saveFile(await response.blob(), `ScrappSA_directorio.${format}`);
+  saveFile(await response.blob(), `Scrapsa_directorio.${format}`);
   notify('Exportación lista.');
 }
 function openDatabase() {
@@ -173,7 +173,7 @@ function openDatabase() {
     request.onupgradeneeded = () => request.result.createObjectStore('lists', {keyPath:'id'});
     request.onsuccess = () => { database = request.result; database.onversionchange = () => database.close(); resolve(); };
     request.onerror = () => reject(new Error('Este navegador no permite guardar listas. Puedes consultar y exportar empresas.'));
-    request.onblocked = () => reject(new Error('Cierra otras pestañas de ScrappSA para habilitar las listas.'));
+    request.onblocked = () => reject(new Error('Cierra otras pestañas de Scrapsa para habilitar las listas.'));
   });
 }
 function dbRequest(mode, action) {

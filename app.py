@@ -69,7 +69,7 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PLANS = {
     'estandar': {
         'name': 'Scrapsa Estándar', 'amount': 52000,
-        'description': 'Acceso individual de por vida a ScrappSA. Pago único, sin mensualidades.',
+        'description': 'Acceso individual de por vida a Scrapsa. Pago único, sin mensualidades.',
         'access_type': 'lifetime',
     },
 }
@@ -1289,7 +1289,7 @@ def send_purchase_confirmation(email: str, name: str, plan: str, register_url: s
     if not api_key or not email:
         return False
 
-    sender = os.environ.get('RESEND_FROM_EMAIL', 'ScrappSA <onboarding@resend.dev>').strip()
+    sender = os.environ.get('RESEND_FROM_EMAIL', 'Scrapsa <onboarding@resend.dev>').strip()
     plan_name = 'Estándar'
     cents = STRIPE_PLANS['estandar']['amount'] if amount_paid is None else amount_paid
     amount = f'${cents / 100:,.2f} MXN'
@@ -1297,12 +1297,12 @@ def send_purchase_confirmation(email: str, name: str, plan: str, register_url: s
     safe_email = escape_html(email)
     safe_register_url = escape_html(register_url, quote=True)
 
-    subject = f'Pago confirmado — ScrappSA {plan_name}'
+    subject = f'Pago confirmado — Scrapsa {plan_name}'
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#111827">
       <h1 style="margin-bottom:8px">Pago confirmado</h1>
       <p>Hola {safe_name},</p>
-      <p>Tu compra de <strong>ScrappSA {plan_name}</strong> por <strong>{amount}</strong> fue confirmada.</p>
+      <p>Tu compra de <strong>Scrapsa {plan_name}</strong> por <strong>{amount}</strong> fue confirmada.</p>
       <p>Tu acceso es de por vida: un solo pago, sin mensualidades ni renovación automática. El fin de la oferta no cambia la vigencia de tu acceso.</p>
       <p>Incluye el directorio de empresas de México, listas de prospectos, exportaciones y las herramientas de Google Maps y actividad económica.</p>
       <p>Ya puedes crear tu cuenta con el correo <strong>{safe_email}</strong>.</p>

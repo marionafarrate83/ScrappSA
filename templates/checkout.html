@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acceso de por vida · ScrappSA Estándar</title>
+  <title>Acceso de por vida · Scrapsa Estándar</title>
   <style>
     :root { --yellow:#f5c800; --yellow-dark:#d4ac00; --yellow-light:#fffbe6; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --paper:#f3f4f6; --dark:#1a1a2e; --green:#16a34a; }
     * { box-sizing:border-box; }
@@ -57,7 +57,7 @@
   </style>
 </head>
 <body>
-  <header><div class="wrap nav"><a class="brand" href="/"><span class="mark">S</span> ScrappSA</a><span class="secure">{% if stripe_configured %}Pago único con Stripe{% else %}Compra de acceso{% endif %}</span></div></header>
+  <header><div class="wrap nav"><a class="brand" href="/"><span class="mark">S</span> Scrapsa</a><span class="secure">{% if stripe_configured %}Pago único con Stripe{% else %}Compra de acceso{% endif %}</span></div></header>
   <main><div class="wrap">
     <div class="checkout-head"><div class="eyebrow">{{ standard_offer.availability }}</div><h1>Tu acceso de por vida.</h1><p>{{ standard_offer.name }} · Un solo pago, sin mensualidades.</p></div>
     {% if not stripe_configured %}<div class="demo-notice" role="status">El pago en línea no está disponible en este momento. Intenta más tarde; no se realizará ningún cargo desde este formulario.</div>{% endif %}
