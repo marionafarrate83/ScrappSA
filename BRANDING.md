@@ -151,7 +151,6 @@ Comparativas con datos ficticios en `docs/rebranding/`.
 - No hay aviso de privacidad, términos ni contacto que enlazar desde el pie.
 - No existen recuperación de contraseña ni pantalla de perfil.
 - No hay mapa integrado: la aplicación solo enlaza a Google Maps.
-- El mensaje de WhatsApp predeterminado en administración todavía menciona «Visoor» (`app.py`).
 
 ## 11. Verificación
 

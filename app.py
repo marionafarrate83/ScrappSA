@@ -715,7 +715,7 @@ def admin_search_detail(search_id):
     entry['details_fmt'] = _fmt_search_details(entry)
     contacts = extract_search_contacts(entry)
     default_message = (
-        "Hola {{nombre}}, te contacto de Visoor. "
+        "Hola {{nombre}}, te contacto de ScrapSA."
         "Vimos tu negocio en {{location}} y nos gustaría compartirte una propuesta."
     )
     return render_template(
