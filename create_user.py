@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crea un usuario en MongoDB para Scrapsa.
+Crea un usuario en MongoDB para ScrapSA.
 Uso: python create_user.py <username>
 """
 

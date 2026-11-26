@@ -1,0 +1,17 @@
+{% set cases = [
+  ('vendedores', 'Vendedores independientes B2B', 'Arma tu cartera por giro y zona, y registra el avance de cada prospecto: Nuevo, Contactado, Interesado, Cliente o Descartado.'),
+  ('agencias', 'Agencias de marketing y freelancers', 'Localiza negocios de los sectores que atiendes, revisa sus datos y sitio web disponibles y prepara tus acercamientos.'),
+  ('distribuidores', 'Distribuidores y proveedores', 'Encuentra negocios que pueden comprar tu producto o servicio y organiza listas por municipio o actividad.'),
+] %}
+<section class="wrap section" id="casos" aria-labelledby="casos-title">
+  <p class="eyebrow">Casos de uso</p>
+  <h2 id="casos-title">Hecho para quien <span class="accent">sale a vender.</span></h2>
+  <ul class="grid-3 plain">
+    {% for key, title, text in cases if offer.featured_case == key %}
+    <li class="card is-featured"><span class="tag">Para ti</span><h3>{{ title }}</h3><p>{{ text }}</p></li>
+    {% endfor %}
+    {% for key, title, text in cases if offer.featured_case != key %}
+    <li class="card"><h3>{{ title }}</h3><p>{{ text }}</p></li>
+    {% endfor %}
+  </ul>
+</section>

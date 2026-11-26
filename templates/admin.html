@@ -1,312 +1,22 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-MX">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scrapsa — Administración</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --yellow: #f5c800;
-      --yellow-dark: #d4ac00;
-      --yellow-light: #fffbe6;
-      --gray-50: #f9fafb;
-      --gray-100: #f3f4f6;
-      --gray-200: #e5e7eb;
-      --gray-400: #9ca3af;
-      --gray-500: #6b7280;
-      --gray-700: #374151;
-      --gray-900: #111827;
-      --green: #16a34a;
-      --red: #dc2626;
-      --blue: #2563eb;
-      --orange: #ea580c;
-      --radius: 10px;
-      --shadow: 0 2px 16px rgba(0,0,0,.09);
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--gray-100);
-      color: var(--gray-900);
-      min-height: 100vh;
-    }
-
-    /* ── Header ── */
-    header {
-      background: var(--yellow);
-      padding: 0 32px;
-      height: 58px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.12);
-    }
-    header h1 { font-size: 1.15rem; font-weight: 700; color: var(--gray-900); }
-    header span.sub { font-size: .85rem; color: var(--gray-700); margin-left: 4px; }
-    .admin-badge {
-      background: var(--gray-900);
-      color: var(--yellow);
-      font-size: .72rem;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 5px;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-    }
-    .header-user {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .header-username { font-size: .85rem; color: var(--gray-700); font-weight: 600; }
-    .btn-header {
-      font-size: .82rem;
-      font-weight: 600;
-      color: var(--gray-700);
-      text-decoration: none;
-      padding: 5px 12px;
-      border: 1.5px solid var(--gray-700);
-      border-radius: 7px;
-      transition: background .12s;
-    }
-    .btn-header:hover { background: rgba(0,0,0,.07); }
-
-    /* ── Layout ── */
-    .admin-wrap {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding: 28px 32px;
-    }
-
-    /* ── Tabs ── */
-    .tab-bar {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid var(--gray-200);
-      padding-bottom: 0;
-    }
-    .tab-btn {
-      background: none;
-      border: none;
-      padding: 10px 20px;
-      font-size: .9rem;
-      font-weight: 600;
-      color: var(--gray-500);
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      margin-bottom: -2px;
-      transition: color .15s, border-color .15s;
-    }
-    .tab-btn.active { color: var(--gray-900); border-bottom-color: var(--yellow-dark); }
-    .tab-btn:hover:not(.active) { color: var(--gray-700); }
-
-    /* ── Cards ── */
-    .card {
-      background: #fff;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--gray-100);
-    }
-    .card-header h2 {
-      font-size: .95rem;
-      font-weight: 700;
-      color: var(--gray-700);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    /* ── Table ── */
-    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-    thead tr { background: var(--yellow-light); }
-    th {
-      padding: 11px 14px;
-      text-align: left;
-      font-size: .75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      color: var(--gray-700);
-      white-space: nowrap;
-    }
-    tbody tr { border-top: 1px solid var(--gray-100); transition: background .1s; }
-    tbody tr:hover { background: var(--gray-50); }
-    td { padding: 11px 14px; vertical-align: middle; }
-
-    /* ── Badges ── */
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 5px;
-      padding: 2px 8px;
-      font-size: .75rem;
-      font-weight: 700;
-    }
-    .pill-green  { background: #dcfce7; color: #15803d; }
-    .pill-red    { background: #fee2e2; color: #b91c1c; }
-    .pill-gray   { background: var(--gray-100); color: var(--gray-500); }
-    .pill-yellow { background: #fef9c3; color: #854d0e; }
-    .pill-blue   { background: #dbeafe; color: #1d4ed8; }
-    .pill-orange { background: #ffedd5; color: #9a3412; }
-
-    /* ── Buttons ── */
-    .btn { padding: 8px 16px; border-radius: 7px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: background .12s; }
-    .btn-primary { background: var(--yellow); color: var(--gray-900); }
-    .btn-primary:hover { background: var(--yellow-dark); }
-    .btn-sm { padding: 4px 10px; border-radius: 6px; font-size: .78rem; font-weight: 600; cursor: pointer; border: 1.5px solid; transition: background .12s; }
-    .btn-sm-blue   { border-color: var(--blue); color: var(--blue); background: #eff6ff; }
-    .btn-sm-blue:hover { background: #dbeafe; }
-    .btn-sm-green  { border-color: var(--green); color: var(--green); background: #f0fdf4; }
-    .btn-sm-green:hover { background: #dcfce7; }
-    .btn-sm-red    { border-color: var(--red); color: var(--red); background: #fef2f2; }
-    .btn-sm-red:hover { background: #fee2e2; }
-    .btn-sm-orange { border-color: var(--orange); color: var(--orange); background: #fff7ed; }
-    .btn-sm-orange:hover { background: #ffedd5; }
-    .btn-sm-gray   { border-color: var(--gray-400); color: var(--gray-500); background: var(--gray-50); }
-    .btn-sm-whatsapp { border-color: var(--green); color: #128c3a; background: #ecfdf5; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
-    .btn-sm-whatsapp:hover { background: #d1fae5; }
-    .wa-wave { display: inline-block; transform-origin: 70% 70%; animation: wa-wave 1.25s ease-in-out infinite; }
-    @keyframes wa-wave {
-      0%, 100% { transform: rotate(0deg); }
-      15% { transform: rotate(16deg); }
-      30% { transform: rotate(-10deg); }
-      45% { transform: rotate(14deg); }
-      60% { transform: rotate(-6deg); }
-      75% { transform: rotate(8deg); }
-    }
-
-    /* ── Filters ── */
-    .filter-form {
-      display: flex;
-      gap: 10px;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--gray-100);
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .filter-form select, .filter-form input {
-      padding: 7px 10px;
-      border: 1.5px solid var(--gray-200);
-      border-radius: 7px;
-      font-size: .875rem;
-      color: var(--gray-900);
-      outline: none;
-    }
-    .filter-form select:focus, .filter-form input:focus { border-color: var(--yellow-dark); }
-    .filter-info { margin-left: auto; font-size: .82rem; color: var(--gray-500); }
-
-    /* ── Pagination ── */
-    .pagination {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 20px;
-      border-top: 1px solid var(--gray-100);
-      font-size: .85rem;
-      color: var(--gray-500);
-    }
-    .pagination a {
-      color: var(--blue);
-      text-decoration: none;
-      font-weight: 600;
-      padding: 4px 10px;
-      border: 1.5px solid var(--blue);
-      border-radius: 6px;
-    }
-    .pagination a:hover { background: #eff6ff; }
-
-    /* ── Modal ── */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.45);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: #fff;
-      border-radius: var(--radius);
-      box-shadow: 0 8px 40px rgba(0,0,0,.2);
-      padding: 32px;
-      width: 100%;
-      max-width: 400px;
-    }
-    .modal h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
-    .modal-field { margin-bottom: 16px; }
-    .modal-field label {
-      display: block;
-      font-size: .8rem;
-      font-weight: 600;
-      color: var(--gray-500);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-    .modal-field input[type=text],
-    .modal-field input[type=password] {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1.5px solid var(--gray-200);
-      border-radius: 8px;
-      font-size: .95rem;
-      outline: none;
-    }
-    .modal-field input:focus { border-color: var(--yellow-dark); }
-    .modal-field .check-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: .875rem;
-      color: var(--gray-700);
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
-    .modal-actions .btn-cancel {
-      padding: 9px 18px;
-      border-radius: 7px;
-      font-size: .875rem;
-      font-weight: 600;
-      cursor: pointer;
-      background: var(--gray-100);
-      border: none;
-      color: var(--gray-700);
-    }
-
-    /* ── Misc ── */
-    .hidden { display: none !important; }
-    .no-rows td { text-align: center; color: var(--gray-400); padding: 32px !important; }
-    .td-details { max-width: 260px; font-size: .82rem; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .td-actions { white-space: nowrap; display: flex; gap: 5px; flex-wrap: wrap; }
-  </style>
+  <title>Administración | ScrapSA.app</title>
+  {% include 'partials/brand_head.html' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='brand/admin.css') }}">
 </head>
 <body>
 
-<header>
-  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-    <circle cx="14" cy="14" r="14" fill="#1a1a2e"/>
-    <path d="M8 14C8 10.686 10.686 8 14 8s6 2.686 6 6-2.686 6-6 6" stroke="#f5c800" stroke-width="2" stroke-linecap="round"/>
-    <circle cx="14" cy="14" r="2" fill="#f5c800"/>
-  </svg>
-  <h1>Scrapsa <span class="sub">— Administración</span></h1>
+<header class="topbar">
+  {% include 'partials/logo.html' %}
+  <h1 class="topbar-title">Administración</h1>
   <span class="admin-badge">Admin</span>
-  <div class="header-user">
-    <span class="header-username">{{ username }}</span>
-    <a href="/" class="btn-header">← App</a>
-    <a href="/logout" class="btn-header">Cerrar sesión</a>
+  <div class="topbar-actions">
+    <span class="topbar-user">{{ username }}</span>
+    <a href="/" class="topbar-link">← App</a>
+    <a href="/logout" class="topbar-link">Cerrar sesión</a>
   </div>
 </header>
 
@@ -347,8 +57,8 @@
           {% for u in users %}
           <tr>
             <td><strong>{{ u.username }}</strong></td>
-            <td style="color:var(--gray-500);font-size:.82rem">{{ u.created_str }}</td>
-            <td style="font-size:.82rem">{{ u.last_login }}</td>
+            <td class="td-date">{{ u.created_str }}</td>
+            <td class="td-small">{{ u.last_login }}</td>
             <td>
               {% if u.is_active %}
               <span class="pill pill-green">Activo</span>
@@ -397,13 +107,13 @@
     <div class="card">
       <form method="GET" action="/admin" class="filter-form">
         <input type="hidden" name="tab" value="audit" />
-        <select name="user">
+        <select name="user" aria-label="Filtrar por usuario">
           <option value="">Todos los usuarios</option>
           {% for uname in user_list %}
           <option value="{{ uname }}" {% if uname == filter_user %}selected{% endif %}>{{ uname }}</option>
           {% endfor %}
         </select>
-        <select name="action">
+        <select name="action" aria-label="Filtrar por acción">
           <option value="">Todas las acciones</option>
           <option value="login"        {% if filter_action == 'login' %}selected{% endif %}>Login</option>
           <option value="logout"       {% if filter_action == 'logout' %}selected{% endif %}>Logout</option>
@@ -414,9 +124,9 @@
           <option value="admin_toggle_admin"    {% if filter_action == 'admin_toggle_admin' %}selected{% endif %}>Admin: toggle admin</option>
           <option value="admin_toggle_active"   {% if filter_action == 'admin_toggle_active' %}selected{% endif %}>Admin: toggle activo</option>
         </select>
-        <button type="submit" class="btn btn-primary" style="padding:7px 16px">Filtrar</button>
+        <button type="submit" class="btn btn-primary">Filtrar</button>
         {% if filter_user or filter_action %}
-        <a href="/admin?tab=audit" style="font-size:.82rem;color:var(--gray-500);text-decoration:none">✕ Limpiar</a>
+        <a href="/admin?tab=audit" class="filter-clear">✕ Limpiar</a>
         {% endif %}
         <span class="filter-info">{{ total_logs }} registros</span>
       </form>
@@ -434,7 +144,7 @@
         <tbody>
           {% for entry in audit_logs %}
           <tr>
-            <td style="font-size:.82rem;white-space:nowrap;color:var(--gray-500)">{{ entry.ts_str }}</td>
+            <td class="td-date">{{ entry.ts_str }}</td>
             <td><strong>{{ entry.user or '—' }}</strong></td>
             <td>
               {% if entry.action == 'login' %}
@@ -452,7 +162,7 @@
               {% endif %}
             </td>
             <td class="td-details" title="{{ entry.details_fmt }}">{{ entry.details_fmt or '—' }}</td>
-            <td style="font-size:.82rem;color:var(--gray-500)">{{ entry.ip or '—' }}</td>
+            <td class="td-date">{{ entry.ip or '—' }}</td>
           </tr>
           {% endfor %}
           {% if not audit_logs %}
@@ -480,22 +190,22 @@
 	    <div class="card">
 	      <form method="GET" action="/admin" class="filter-form">
 	        <input type="hidden" name="tab" value="searches" />
-	        <select name="s_user">
+	        <select name="s_user" aria-label="Filtrar por usuario">
 	          <option value="">Todos los usuarios</option>
 	          {% for uname in user_list %}
 	          <option value="{{ uname }}" {% if uname == search_user %}selected{% endif %}>{{ uname }}</option>
 	          {% endfor %}
 	        </select>
-	        <select name="s_kind">
+	        <select name="s_kind" aria-label="Filtrar por tipo">
 	          <option value="">Todos los tipos</option>
 	          <option value="directory" {% if search_kind == 'directory' %}selected{% endif %}>Directorio</option>
 	          <option value="maps" {% if search_kind == 'maps' %}selected{% endif %}>Maps</option>
 	          <option value="economic_activity" {% if search_kind == 'economic_activity' %}selected{% endif %}>Actividad económica</option>
 	          <option value="prices" {% if search_kind == 'prices' %}selected{% endif %}>Precios</option>
 	        </select>
-	        <button type="submit" class="btn btn-primary" style="padding:7px 16px">Filtrar</button>
+	        <button type="submit" class="btn btn-primary">Filtrar</button>
 	        {% if search_user or search_kind %}
-	        <a href="/admin?tab=searches" style="font-size:.82rem;color:var(--gray-500);text-decoration:none">✕ Limpiar</a>
+	        <a href="/admin?tab=searches" class="filter-clear">✕ Limpiar</a>
 	        {% endif %}
 	        <span class="filter-info">{{ total_searches }} búsquedas</span>
 	      </form>
@@ -516,7 +226,7 @@
 	        <tbody>
 	          {% for item in saved_searches %}
 	          <tr>
-	            <td style="font-size:.82rem;white-space:nowrap;color:var(--gray-500)">{{ item.completed_str }}</td>
+	            <td class="td-date">{{ item.completed_str }}</td>
 	            <td><strong>{{ item.user or '—' }}</strong></td>
 	            <td>
 	              {% if item.kind == 'maps' %}
@@ -541,7 +251,7 @@
 	              <span class="pill pill-gray">{{ item.status or '—' }}</span>
 	              {% endif %}
 	            </td>
-	            <td style="font-weight:700">{{ item.result_count or 0 }}</td>
+	            <td class="td-count">{{ item.result_count or 0 }}</td>
 	            <td>
 	              {% set wa_contact = item.first_whatsapp_contact %}
 	              {% if wa_contact %}
@@ -584,25 +294,25 @@
 
 <!-- ── Modal: Nuevo usuario ── -->
 <div class="modal-overlay" id="modal-create">
-  <div class="modal">
-    <h3>Nuevo usuario</h3>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-create-title">
+    <h3 id="modal-create-title">Nuevo usuario</h3>
     <form method="POST" action="/admin/users/create">
       <div class="modal-field">
-        <label>Usuario</label>
-        <input type="text" name="username" required autocomplete="off" />
+        <label for="new-username">Usuario</label>
+        <input id="new-username" type="text" name="username" required autocomplete="off" />
       </div>
       <div class="modal-field">
-        <label>Contraseña</label>
-        <input type="password" name="password" required />
+        <label for="new-password">Contraseña</label>
+        <input id="new-password" type="password" name="password" required />
       </div>
       <div class="modal-field">
         <label class="check-label">
-          <input type="checkbox" name="is_admin" style="width:15px;height:15px;accent-color:var(--yellow-dark)" />
+          <input type="checkbox" name="is_admin" />
           Es administrador
         </label>
       </div>
       <div class="modal-actions">
-        <button type="submit" class="btn btn-primary" style="flex:1">Crear usuario</button>
+        <button type="submit" class="btn btn-primary">Crear usuario</button>
         <button type="button" class="btn-cancel" onclick="closeModal('modal-create')">Cancelar</button>
       </div>
     </form>
@@ -611,19 +321,19 @@
 
 <!-- ── Modal: Cambiar contraseña ── -->
 <div class="modal-overlay" id="modal-pwd">
-  <div class="modal">
-    <h3>Cambiar contraseña</h3>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-pwd-title">
+    <h3 id="modal-pwd-title">Cambiar contraseña</h3>
     <form method="POST" id="form-pwd" action="">
       <div class="modal-field">
-        <label>Usuario</label>
-        <input type="text" id="pwd-username" readonly style="background:var(--gray-50);color:var(--gray-500)" />
+        <label for="pwd-username">Usuario</label>
+        <input type="text" id="pwd-username" readonly />
       </div>
       <div class="modal-field">
-        <label>Nueva contraseña</label>
-        <input type="password" name="password" required />
+        <label for="pwd-password">Nueva contraseña</label>
+        <input id="pwd-password" type="password" name="password" required />
       </div>
       <div class="modal-actions">
-        <button type="submit" class="btn btn-primary" style="flex:1">Guardar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
         <button type="button" class="btn-cancel" onclick="closeModal('modal-pwd')">Cancelar</button>
       </div>
     </form>
@@ -642,12 +352,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ── Modals ────────────────────────────────────────────────────
+let modalOpener = null;
 function openModal(id) {
-  document.getElementById(id).classList.add('open');
+  modalOpener = document.activeElement;
+  const overlay = document.getElementById(id);
+  overlay.classList.add('open');
+  overlay.querySelector('input:not([readonly])')?.focus();
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  modalOpener?.focus();
 }
+document.addEventListener('keydown', e => {
+  const open = document.querySelector('.modal-overlay.open');
+  if (open && e.key === 'Escape') closeModal(open.id);
+});
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) overlay.classList.remove('open');

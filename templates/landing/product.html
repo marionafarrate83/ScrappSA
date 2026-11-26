@@ -1,0 +1,27 @@
+<section class="wrap section split" id="vista" aria-labelledby="vista-title">
+  <div>
+    <p class="eyebrow">El producto</p>
+    <h2 id="vista-title">De la búsqueda a <span class="accent">tu lista de trabajo.</span></h2>
+    <p class="intro">Guarda las empresas que te interesan, anota cada contacto y exporta la lista cuando la necesites.</p>
+    <ul class="checks">
+      <li>Seguimiento por cada prospecto</li>
+      <li>Notas dentro de la lista</li>
+      <li>Exportación a CSV</li>
+    </ul>
+  </div>
+  <figure class="mock" aria-label="Representación de una lista de prospectos con datos ficticios">
+    <div class="mock-bar">
+      <img src="{{ url_for('static', filename='brand/img/isotype.svg') }}" alt="" width="112" height="80">
+      <span class="mock-tab">Buscar empresas</span><span class="mock-tab is-active">Mis listas</span>
+    </div>
+    <div class="mock-results">
+      <div class="mock-results-head"><strong>Dentistas CDMX</strong><span class="mock-export">Exportar CSV</span></div>
+      <ul>
+        <li><span><strong>Consultorio Ejemplo A</strong><small>Nota: llamar el lunes</small></span><span class="mock-status is-info">Contactado</span></li>
+        <li><span><strong>Clínica Ejemplo B</strong><small>Nota: pidió cotización</small></span><span class="mock-status is-warm">Interesado</span></li>
+        <li><span><strong>Centro Dental Ejemplo C</strong><small>Sin nota</small></span><span class="mock-status">Nuevo</span></li>
+      </ul>
+    </div>
+    <figcaption>Ejemplo ilustrativo con datos ficticios.</figcaption>
+  </figure>
+</section>

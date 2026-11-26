@@ -144,7 +144,7 @@ function exportList(list) {
   const headers = ['Negocio','Categoría','Calificación','Reseñas','Teléfono','Email','Dirección','Sitio web','Google Maps','LinkedIn','Posible responsable','Cargo','Fuente del responsable','Confianza','Resumen de reseñas','Seguimiento','Nota'];
   const csv = '﻿' + [headers, ...list.items.map(row => columns.map(key => row[key]))].map(row => row.map(csvCell).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})), link = document.createElement('a');
-  link.href = url; link.download = `Scrapsa_Maps_${list.name.replace(/[^\p{L}\p{N}-]/gu, '_').slice(0, 60)}.csv`; link.click();
+  link.href = url; link.download = `ScrapSA_Maps_${list.name.replace(/[^\p{L}\p{N}-]/gu, '_').slice(0, 60)}.csv`; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function renderLists() {

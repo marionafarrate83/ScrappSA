@@ -30,6 +30,7 @@ import price_scraper as ps
 import maps_scraper as ms
 import economic_activity as ea
 from business_directory import create_blueprint
+from landing_offers import landing_offer, utm_suffix
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cambia-esto-en-produccion')
@@ -68,8 +69,8 @@ stripe.api_key = os.environ.get('STRIPE_SECRET_KEY') or os.environ.get('STRIPE_A
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_PLANS = {
     'estandar': {
-        'name': 'Scrapsa Estándar', 'amount': 52000,
-        'description': 'Acceso individual a Scrapsa. Pago único, sin mensualidades.',
+        'name': 'ScrapSA Estándar', 'amount': 52000,
+        'description': 'Acceso individual a ScrapSA. Pago único, sin mensualidades.',
         'access_type': 'lifetime',
     },
 }
@@ -77,7 +78,7 @@ STRIPE_PLANS = {
 @app.context_processor
 def standard_offer_context():
     selected = STRIPE_PLANS['estandar']
-    return {'standard_offer': {
+    return {'utm_suffix': utm_suffix(request.args), 'standard_offer': {
         **selected, 'price': f"${selected['amount'] / 100:,.0f} MXN",
         'access': 'Pago único', 'availability': 'Oferta por tiempo limitado',
     }}
@@ -891,7 +892,7 @@ def admin_change_password(user_id):
 def landing():
     if 'user_id' in session:
         return redirect(url_for('index'))
-    return render_template("landing.html")
+    return render_template("landing.html", offer=landing_offer(request.args.get('v')))
 
 
 @app.route("/app")
@@ -1289,7 +1290,7 @@ def send_purchase_confirmation(email: str, name: str, plan: str, register_url: s
     if not api_key or not email:
         return False
 
-    sender = os.environ.get('RESEND_FROM_EMAIL', 'Scrapsa <onboarding@resend.dev>').strip()
+    sender = os.environ.get('RESEND_FROM_EMAIL', 'ScrapSA <onboarding@resend.dev>').strip()
     plan_name = 'Estándar'
     cents = STRIPE_PLANS['estandar']['amount'] if amount_paid is None else amount_paid
     amount = f'${cents / 100:,.2f} MXN'
@@ -1297,17 +1298,25 @@ def send_purchase_confirmation(email: str, name: str, plan: str, register_url: s
     safe_email = escape_html(email)
     safe_register_url = escape_html(register_url, quote=True)
 
-    subject = f'Pago confirmado — Scrapsa {plan_name}'
+    subject = f'Pago confirmado — ScrapSA {plan_name}'
+    # Los clientes de correo no admiten variables CSS: se repiten los colores de brand/tokens.css.
+    # Fondo claro para el texto; el verde lima solo se usa sobre azul marino o como fondo de botón.
     html = f"""
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#111827">
-      <h1 style="margin-bottom:8px">Pago confirmado</h1>
-      <p>Hola {safe_name},</p>
-      <p>Tu compra de <strong>Scrapsa {plan_name}</strong> por <strong>{amount}</strong> fue confirmada.</p>
-      <p>Es un pago único, sin mensualidades ni renovación automática. El fin de la oferta no cambia la vigencia de tu acceso.</p>
-      <p>Incluye el directorio de empresas de México, listas de prospectos, exportaciones y las herramientas de Google Maps y actividad económica.</p>
-      <p>Ya puedes crear tu cuenta con el correo <strong>{safe_email}</strong>.</p>
-      {f'<p><a href="{safe_register_url}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f5c800;color:#111827;text-decoration:none;font-weight:700">Crear mi cuenta</a></p>' if register_url else ''}
-      <p style="color:#6b7280;font-size:13px">Si no realizaste esta compra, responde a este correo.</p>
+    <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;color:#0B1526;line-height:1.6">
+      <div style="background:#0B1526;border-radius:10px 10px 0 0;padding:22px 24px">
+        <span style="font-size:22px;font-weight:700;color:#F8FAFC">Scrap<span style="color:#C6F432">SA</span><span style="color:#94A3B8">.app</span></span><br>
+        <span style="font-size:13px;color:#CBD5E1">Encuentra. Prospecta. Vende.</span>
+      </div>
+      <div style="padding:8px 24px 20px;border:1px solid #CBD5E1;border-top:0;border-radius:0 0 10px 10px">
+        <h1 style="margin-bottom:8px;font-size:24px">Pago confirmado</h1>
+        <p>Hola {safe_name},</p>
+        <p>Tu compra de <strong>ScrapSA {plan_name}</strong> por <strong>{amount}</strong> fue confirmada.</p>
+        <p>Es un pago único, sin mensualidades ni renovación automática. El fin de la oferta no cambia la vigencia de tu acceso.</p>
+        <p>Incluye el directorio de empresas de México, listas de prospectos, exportaciones y las herramientas de Google Maps y actividad económica.</p>
+        <p>Ya puedes crear tu cuenta con el correo <strong>{safe_email}</strong>.</p>
+        {f'<p style="margin:24px 0"><a href="{safe_register_url}" style="display:inline-block;padding:14px 22px;border-radius:10px;background:#C6F432;color:#0B1526;text-decoration:none;font-weight:700">Crear mi cuenta</a></p>' if register_url else ''}
+        <p style="color:#475569;font-size:13px">Si no realizaste esta compra, responde a este correo.</p>
+      </div>
     </div>
     """
 

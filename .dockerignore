@@ -8,3 +8,4 @@ __pycache__
 instance
 .pytest_cache
 test-results
+docs

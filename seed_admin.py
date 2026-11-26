@@ -38,7 +38,7 @@ DEFAULT_ADMIN_PASSWORD = 'Alfanumerico$2026'
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Crea o actualiza un usuario administrador en Scrapsa.'
+        description='Crea o actualiza un usuario administrador en ScrapSA.'
     )
     parser.add_argument(
         '--username',

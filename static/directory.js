@@ -156,7 +156,7 @@ function exportLocal(records, name = 'seleccion') {
   const fields = ['id','name','legal_name','sector','size','staff','state_name','municipality','postal_code','address','phone','email','website','scian','activity','score','registered','status','note'];
   const headers = ['ID','Empresa','Razón social','Sector','Tamaño','Personal','Estado','Municipio','Código postal','Dirección','Teléfono','Email','Sitio web','SCIAN','Actividad','Calidad','Registro DENUE','Seguimiento','Nota'];
   const csv = '\ufeff' + [headers, ...records.map(row => fields.map(key => row[key]))].map(row => row.map(csvCell).join(',')).join('\r\n');
-  saveFile(new Blob([csv], {type:'text/csv;charset=utf-8'}), `Scrapsa_${name.replace(/[^\p{L}\p{N}-]/gu, '_').slice(0,60)}.csv`);
+  saveFile(new Blob([csv], {type:'text/csv;charset=utf-8'}), `ScrapSA_${name.replace(/[^\p{L}\p{N}-]/gu, '_').slice(0,60)}.csv`);
 }
 async function exportResults(format = 'csv') {
   if (loading) throw new Error('Espera a que termine la búsqueda para exportar.');
@@ -166,7 +166,7 @@ async function exportResults(format = 'csv') {
   notify('Preparando la exportación…');
   const response = await fetch(`/api/directory/export?${params}`);
   if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'No se pudo exportar.'); }
-  saveFile(await response.blob(), `Scrapsa_directorio.${format}`);
+  saveFile(await response.blob(), `ScrapSA_directorio.${format}`);
   notify('Exportación lista.');
 }
 function openDatabase() {
@@ -175,7 +175,7 @@ function openDatabase() {
     request.onupgradeneeded = () => request.result.createObjectStore('lists', {keyPath:'id'});
     request.onsuccess = () => { database = request.result; database.onversionchange = () => database.close(); resolve(); };
     request.onerror = () => reject(new Error('Este navegador no permite guardar listas. Puedes consultar y exportar empresas.'));
-    request.onblocked = () => reject(new Error('Cierra otras pestañas de Scrapsa para habilitar las listas.'));
+    request.onblocked = () => reject(new Error('Cierra otras pestañas de ScrapSA para habilitar las listas.'));
   });
 }
 function dbRequest(mode, action) {
@@ -322,6 +322,8 @@ el('dir-export-selected').onclick = () => exportLocal([...selected.values()]);
 el('dir-export').onclick = guard(() => exportResults());
 el('dir-export-json').onclick = guard(() => exportResults('json'));
 el('dir-tab-search').onclick = () => switchView('search');
+// En pantallas pequeñas los filtros se despliegan bajo demanda.
+el('dir-filters-toggle').onclick = event => event.currentTarget.setAttribute('aria-expanded', String(el('dir-filters').classList.toggle('is-open')));
 el('dir-tab-lists').onclick = () => switchView('lists');
 el('dir-list-form').onsubmit = guard(addToList);
 el('dir-target-list').onchange = () => { el('dir-new-list-name').disabled = !!el('dir-target-list').value; };

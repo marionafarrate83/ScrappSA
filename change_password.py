@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cambia la contraseña de un usuario existente en Scrapsa.
+Cambia la contraseña de un usuario existente en ScrapSA.
 Uso: python3 change_password.py <username>
 """
 

@@ -10,7 +10,8 @@
   </div>
   <div id="dir-alert" class="dir-alert" role="status" aria-live="polite" hidden></div>
   <div class="dir-grid" id="dir-search-view">
-    <aside class="dir-filters" aria-label="Filtros de empresas">
+    <button type="button" id="dir-filters-toggle" class="dir-btn dir-filters-toggle" aria-expanded="false" aria-controls="dir-filters">Filtros</button>
+    <aside class="dir-filters" id="dir-filters" aria-label="Filtros de empresas">
       <div class="dir-filter-title"><h3>Filtros</h3><button type="button" id="dir-reset" class="dir-text-btn">Limpiar todo</button></div>
       <label class="dir-field">Estado<select id="dir-state"><option value="">Todo México</option></select></label>
       <label class="dir-field">Municipio<select id="dir-municipality" disabled><option value="">Selecciona un estado</option></select></label>

@@ -1,0 +1,23 @@
+<section class="wrap hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <p class="eyebrow">Encuentra. Prospecta. Vende.</p>
+    <h1 id="hero-title">{{ offer.headline }} <span class="accent">{{ offer.highlight }}</span></h1>
+    <p class="lead">{{ offer.subtitle }}</p>
+    <p class="benefit"><span class="pin" aria-hidden="true"></span>{{ offer.benefit }}</p>
+    <div class="actions">
+      <a class="btn btn-primary btn-lg" href="/checkout{{ utm_suffix }}">{{ offer.cta }}</a>
+      <a class="btn btn-ghost btn-lg" href="#como-funciona">Conoce cómo funciona</a>
+    </div>
+    <ul class="facts" aria-label="Condiciones de la oferta">
+      <li><strong>{{ standard_offer.price }}</strong></li>
+      <li>{{ standard_offer.access }}</li>
+      <li>Sin mensualidades</li>
+    </ul>
+    <p class="fine">{{ standard_offer.availability }} · Exportas archivos CSV que abres en Excel.</p>
+  </div>
+  {% if offer.hero_image %}
+  <img class="hero-image" src="{{ url_for('static', filename=offer.hero_image) }}" alt="{{ offer.hero_image_alt }}">
+  {% else %}
+  {% include 'landing/mock_search.html' %}
+  {% endif %}
+</section>
