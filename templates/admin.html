@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Administración | ScrapSA.app</title>
   {% include 'partials/brand_head.html' %}
+  <script src="{{ url_for('static', filename='brand/password.js') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='brand/admin.css') }}">
 </head>
 <body>
@@ -360,7 +361,9 @@ function openModal(id) {
   overlay.querySelector('input:not([readonly])')?.focus();
 }
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const overlay = document.getElementById(id);
+  overlay.classList.remove('open');
+  overlay.querySelectorAll('.password-field input').forEach(input => input.dispatchEvent(new Event('password:hide')));
   modalOpener?.focus();
 }
 document.addEventListener('keydown', e => {
@@ -369,7 +372,7 @@ document.addEventListener('keydown', e => {
 });
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.classList.remove('open');
+    if (e.target === overlay) closeModal(overlay.id);
   });
 });
 

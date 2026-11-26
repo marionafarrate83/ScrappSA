@@ -33,6 +33,14 @@ input[type=checkbox], input[type=radio] { accent-color: var(--brand-accent); }
 dialog { background: var(--surface); color: var(--text-primary); }
 table { font-variant-numeric: tabular-nums; }
 
+/* Campos de contraseña (password.js) */
+.password-field { position: relative; display: block; width: 100%; }
+span.password-field.password-field > input { width: 100%; padding-right: 50px; }
+input::-ms-reveal { display: none; }
+.password-toggle { position: absolute; top: 50%; right: 3px; display: grid; place-items: center; width: 42px; height: calc(100% - 6px); transform: translateY(-50%); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; }
+.password-toggle:hover { color: var(--brand-accent); }
+.password-toggle:focus-visible { outline-offset: -2px; }
+
 /* Barra superior */
 .topbar {
   min-height: 64px;
